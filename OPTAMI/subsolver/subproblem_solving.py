@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-from Hyperfast_v2.OPTAMI.sup.tuple_to_vec import tuple_to_vector as ttv
+from OPTAMI.sup.tuple_to_vec import tuple_to_vector as ttv
 
 def _optim_test(x, c, A, L):
     # c + |x|^2 * L * x + A * x
@@ -81,6 +81,7 @@ def sub_solve(tol, init_point, subsolver, subsolver_args, closure_args, params, 
             #print(loss_tmp)
             #loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
             # loss_history.append(loss.detach().item())
 
     elif ((subsolver.__name__=='APDGD') | (subsolver.__name__== 'UAGMsDR')):
@@ -100,6 +101,7 @@ def sub_solve(tol, init_point, subsolver, subsolver_args, closure_args, params, 
             zeroing_optimizer.zero_grad()
             #loss.backward
             optimizer.step(local_closure)
+            optimizer.zero_grad()
             # loss_history.append(loss.detach().item())
     else:
         raise ValueError('Error: LBFGS if not supported')

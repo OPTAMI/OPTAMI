@@ -4,10 +4,10 @@ from torch.optim.optimizer import Optimizer
 import sys
 # import OPTAMI as opt
 
-from Hyperfast_v2.OPTAMI.subsolver import fourth_newton as fn
-from Hyperfast_v2.OPTAMI.sup import tuple_to_vec as ttv
-from Hyperfast_v2.OPTAMI.sup import derivatives as de
-from Hyperfast_v2.OPTAMI.subsolver.subproblem_solving import sub_solve
+from OPTAMI.subsolver import fourth_newton as fn
+from OPTAMI.sup import tuple_to_vec as ttv
+from OPTAMI.sup import derivatives as de
+from OPTAMI.subsolver.subproblem_solving import sub_solve
 
 
 def quad_func(flat_vk, flat_grad, flat_hess, L):
