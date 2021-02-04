@@ -11,6 +11,8 @@ def factorial(n):
         else:
             if n == 3:
                 fac = 6
+            else:
+                ValueError("TO_DO: compute big factorial")
     return fac
 
 
