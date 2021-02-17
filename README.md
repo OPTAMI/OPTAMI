@@ -8,4 +8,4 @@ https://www.researchgate.net/publication/339390966_Near-Optimal_Hyperfast_Second
 2) High-order BDGM (bdgm.py)
 https://alfresco.uclouvain.be/share/proxy/alfresco/slingshot/node/content/workspace/SpacesStore/613651d1-df5e-46e1-a630-987666c5d73c/coredp2020_07web.pdf
 
-Copyright 2021 by Dmitry Kamzolov
+Copyright 2020 by Dmitry Kamzolov
