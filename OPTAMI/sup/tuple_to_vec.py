@@ -3,16 +3,16 @@ import torch
 
 def factorial(n):
     fac = None
-    if n <= 1:
-        fac = 1
+    if n == 3:
+        fac = 6
     else:
         if n == 2:
             fac = 2
         else:
-            if n == 3:
-                fac = 6
+            if n <= 1:
+                fac = 1
             else:
-                ValueError("TO_DO: compute big factorial")
+                ValueError("Too big factorial for current realisation")
     return fac
 
 

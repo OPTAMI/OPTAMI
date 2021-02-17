@@ -22,7 +22,8 @@ class Hyperfast(Optimizer):
             raise ValueError("Invalid L: {}".format(L))
 
         defaults = dict(L=L, eps=eps, p_order=p_order, subsolver=subsolver, subsolver_params=subsolver_params,
-                           subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve, subsolver_args=subsolver_args, restarted=restarted)
+                        subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve, subsolver_args=subsolver_args,
+                        restarted=restarted)
         super(Hyperfast, self).__init__(params, defaults)
 
         for group in self.param_groups:
@@ -114,7 +115,8 @@ class Hyperfast(Optimizer):
             tol_subsolve = group['tol_subsolve']
             subsolver_args = group['subsolver_args']
             
-            optimizer = subsolver(params, L=L, subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve, subsolver_args=subsolver_args)  # define subsolver
+            optimizer = subsolver(params, L=L, subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve,
+                                  subsolver_args=subsolver_args)  # define subsolver
 
             while line_search:
 
@@ -168,7 +170,7 @@ class Hyperfast(Optimizer):
 
             # Compute gradient in point y
             output_y = closure()
-            grad_y = torch.autograd.grad(output_y, list(params), retain_graph=True)
+            grad_y = torch.autograd.grad(output_y, list(params), retain_graph=False)
             # print(output_y)
 
             # Update xk

@@ -20,10 +20,10 @@ def third_derivative_vec(closure, params, vector):
     return third_vp, hvp_det
 
 
-def flat_hessian(flat_grads, params, create_graph=False):
+def flat_hessian(flat_grads, params):
     full_hessian = []
-    for l in range(flat_grads.size()[0]):
-        temp_hess = torch.autograd.grad(flat_grads[l], params,
+    for i in range(flat_grads.size()[0]):
+        temp_hess = torch.autograd.grad(flat_grads[i], params,
                                         retain_graph=True)
         # print(temp_hess)
         full_hessian.append(ttv.tuple_to_vector(temp_hess))
