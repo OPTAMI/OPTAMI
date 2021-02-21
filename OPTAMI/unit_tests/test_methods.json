@@ -1,0 +1,14 @@
+[
+  {
+    "algorithm": "Hyperfast",
+    "config": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration": 15}
+    ]
+  },
+  {
+    "algorithm": "BDGM",
+    "config": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration": 15}
+    ]
+  }
+]

@@ -11,14 +11,18 @@ class Hyperfast(Optimizer):
         params (iterable): iterable of parameters to optimize or dicts defining
             parameter groups
         L (float, optional): Lipshitz constant of the Third-order (default: 1e+3)
-        eps (float, optional): Desired accuracy for the norm of the model's gradient, used for the stopping criterion  (default: 1e-1)
-        lambdak_start(float, optional): Desired lambda for the first linear search. Next lambda uses the previous as a warm start (default: 0.1)
+        eps (float, optional): Desired accuracy for the norm of the model's gradient,
+        used for the stopping criterion  (default: 1e-1)
+        lambdak_start(float, optional): Desired lambda for the first linear search.
+        Next lambda uses the previous as a warm start (default: 0.1)
 
     """
 
-    def __init__(self, params, L=1e+3, eps=1e-1, p_order=3, subsolver=opt.BDGM, subsolver_params=None, subsolver_bdgm=None, tol_subsolve=None, subsolver_args=None, restarted = False, **kwargs):
+    def __init__(self, params, L=1e+3, eps=1e-1, p_order=3, subsolver=opt.BDGM,
+                 subsolver_params=None, subsolver_bdgm=None, tol_subsolve=None,
+                 subsolver_args=None, restarted = False, **kwargs):
 
-        if not 0.0 <= L:
+        if not L >= 0.0:
             raise ValueError("Invalid L: {}".format(L))
 
         defaults = dict(L=L, eps=eps, p_order=p_order, subsolver=subsolver, subsolver_params=subsolver_params,
@@ -54,7 +58,7 @@ class Hyperfast(Optimizer):
         params = group['params']
         state = self.state[list(params)[0]]
         cloned_state = {}
-        cloned_state['bigA'] = state['bigA']    
+        cloned_state['bigA'] = state['bigA'],
         cloned_state['xk'] = [par.clone() for par in state['xk']]
         cloned_state['yk'] = [par.clone() for par in state['yk']]
         return cloned_state
@@ -84,7 +88,7 @@ class Hyperfast(Optimizer):
             closure (callable): A closure that reevaluates the model
                 and returns the loss.
         """
-        if closure == None:
+        if closure is None:
             raise ValueError("Closure is None. Closure is necessary for this method. ")
         for group in self.param_groups:
 

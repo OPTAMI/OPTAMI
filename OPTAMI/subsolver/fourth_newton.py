@@ -27,18 +27,18 @@ def dual_func(tau, ct, T, L):
     return first.add(second)
 
 def fourth_subsolver(c = None, A = None, T = None, U = None, L = 1e+3, eps = 1e-10, beta = 0.5):
-    if not 0.0 <= L:
+    if not L >= 0.0 :
         raise ValueError("Invalid Lipshitz constant: {}".format(L))
-    if not c.dim() == 1:
+    if c.dim() != 1:
         raise ValueError("Should be a vector: {}".format(c))
-    if not A.dim() <= 2:
+    if A.dim() > 2:
         raise ValueError("Should be a matrix: {}".format(A))
-    if not c.size()[0] == A.size()[0]:
+    if c.size()[0] != A.size()[0]:
         raise ValueError("Vector and matrix should have the same dimensions")
     if not (A.t() - A).max() <= 0.1:
         raise ValueError("Non-symmetric matrix A")
 
-    if  U == None or T == None:
+    if U is None or T is None:
         T, U = torch.symeig(A, eigenvectors = True)
     
   

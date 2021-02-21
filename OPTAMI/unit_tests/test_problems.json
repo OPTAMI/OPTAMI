@@ -1,0 +1,4 @@
+[
+  {"test_problem":  "f_pow_4",
+    "test_starting_point": [1.0, 2.0], "test_func_min": 0.0, "L":  24, "problem_precision": 1e-7}
+]

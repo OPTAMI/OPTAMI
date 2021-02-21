@@ -10,15 +10,18 @@ from OPTAMI.subsolver.subproblem_solving import sub_solve
 
 def quad_func(flat_vk, flat_grad, flat_hess, L):
     vk_norm = flat_vk.norm().square().item()
-    total = flat_grad.mul(flat_vk).sum().item() + 0.5 * flat_hess.mv(flat_vk).mul(
+    return flat_grad.mul(flat_vk).sum().item() + 0.5 * flat_hess.mv(flat_vk).mul(
         flat_vk).sum().item() + vk_norm ** 2 * L / 4.
-    return total
 
 
 def quad_func_grad(flat_vk, flat_grad, flat_hess, L):
     vk_norm = flat_vk.norm().square().item()
-    total = flat_grad.add(flat_hess.mv(flat_vk)).add(flat_vk.mul(vk_norm * L)).abs().max()
-    return total
+    return (
+        flat_grad.add(flat_hess.mv(flat_vk))
+        .add(flat_vk.mul(vk_norm * L))
+        .abs()
+        .max()
+    )
 
 
 class BDGM(Optimizer):
@@ -37,8 +40,8 @@ class BDGM(Optimizer):
 	"""
 
     def __init__(self, params, L=1e+1, max_iter_outer=20, subroutine_eps=1e-4, subsolver_bdgm=None, tol_subsolve=None,
-                 subsolver_args=None, restarted=False):
-        if not 0.0 <= L:
+                 subsolver_args=None, restarted=False, **kwargs):
+        if not L >= 0.0:
             raise ValueError("Invalid L: {}".format(L))
 
         defaults = dict(L=L, max_iter_outer=max_iter_outer, subroutine_eps=subroutine_eps,
