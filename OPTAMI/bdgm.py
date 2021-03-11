@@ -39,14 +39,13 @@ class BDGM(Optimizer):
 		subsolver_args (dict) : arguments for `subsolver_bdgm`
 	"""
 
-    def __init__(self, params, L=1e+1, max_iter_outer=20, subroutine_eps=1e-4, subsolver_bdgm=None, tol_subsolve=None,
-                 subsolver_args=None, restarted=False, **kwargs):
+    def __init__(self, params, L=1e+1, max_iter_outer=20, subsolver_bdgm=None, tol_subsolve=None,
+                 subsolver_args=None):
         if not L >= 0.0:
             raise ValueError("Invalid L: {}".format(L))
 
-        defaults = dict(L=L, max_iter_outer=max_iter_outer, subroutine_eps=subroutine_eps,
-                        subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve, subsolver_args=subsolver_args,
-                        restarted=restarted)
+        defaults = dict(L=L, max_iter_outer=max_iter_outer,
+                        subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve, subsolver_args=subsolver_args)
         super(BDGM, self).__init__(params, defaults)
 
 
@@ -61,10 +60,8 @@ class BDGM(Optimizer):
         for group in self.param_groups:
             output = closure()
             params = group['params']
-            subroutine_eps = group['subroutine_eps']
             L = group['L']
             max_iter_outer = group['max_iter_outer']
-            restarted = group['restarted']
 
             subsolver_bdgm = group['subsolver_bdgm']
             tol_subsolve = group['tol_subsolve']
@@ -159,7 +156,7 @@ class BDGM(Optimizer):
                     for i in range(length):
                         list(params)[i].add_(vk[i])
                 # print(list(params))
-                # Compute gradient in shifted point minus v
+                # Compute gradient in shifted point xk + v
                 output_vk = closure()
                 grad_vk = torch.autograd.grad(output_vk, list(params), retain_graph=False)
                 grad_vk_norm_new = ttv.tuple_norm_square(grad_vk).to(torch.double).sqrt()
@@ -176,44 +173,19 @@ class BDGM(Optimizer):
 
                 # if norm_g_phi.add(delta) <= grad_vk_norm.div(6.) or grad_vk_norm.div(3.) <= delta:
                 if norm_g_phi <= grad_vk_norm.div(6.):
-                    # print('Exit by stopping criterion. BDGM iterantions = ', k)
-                    k = max_iter_outer
-                # Stoping criterion finish
+                    #print('Exit by stopping criterion. BDGM iterations = ', k)
+                    k = max_iter_outer + 1
+                # Stopping criterion finish
 
                 # print('model before suvbsolver = ', quad_func(flat_vk, flat_const_grad, full_hessian.mul(sqrt_const), L * sqrt_const))
 
                 # computing for subproblem
-                with torch.no_grad():
-                    init_point = ttv.tuple_to_vector(params).clone().detach()
-
                 if (subsolver_bdgm is None) & (tol_subsolve is None) & (subsolver_args is None):
                     flat_vk = fn.fourth_subsolver(flat_const_grad.div(sqrt_const), full_hessian,
-                                                  eigenvalues, eigenvectors, L, eps=1e-9)
+                                                  eigenvalues, eigenvectors, L, fourth_line_search_eps = 1e-10)
                 else:
-                    # flat_vk, _ = sub_solve(tol_subsolve, subsolver_bdgm, subsolver_args, {'c': flat_const_grad.detach(), 'A': full_hessian.detach(), 'L': L}, x_tilde=x_tilde)
-                    # flat_vk, _ = sub_solve(tol_subsolve, subsolver_bdgm, subsolver_args, {'c': flat_const_grad.detach(), 'A': full_hessian.detach(), 'L': L}, params)
-                    if restarted:
-                        N_iter = int(1. / tol_subsolve)
-                        N = 0
-                        k_ = 1
-                        C = 3
-                        alp = 1.
-                        while N < N_iter:
-                            N_k = C * math.exp(alp * k_)
-                            eps = 1. / N_k
-                            flat_vk, _ = sub_solve(eps, init_point, subsolver_bdgm, subsolver_args,
-                                                   {'c': flat_const_grad.div(sqrt_const).detach(), 'L': L}, params,
-                                                   closure)
-                            init_point = flat_vk
-                            N += N_k
-                            k_ += 1
-                    else:
-                        if torch.cuda.is_available():
-                            init_point = torch.zeros_like(init_point).cuda()
-                        else:
-                            init_point = torch.zeros_like(init_point)
-                        flat_vk, _ = sub_solve(tol_subsolve, init_point, subsolver_bdgm, subsolver_args,
-                                               {'c': flat_const_grad.div(sqrt_const).detach(), 'L': L}, params, closure)
+                    flat_vk = sub_solve(tol_subsolve, subsolver_bdgm, subsolver_args,
+                                           {'c': flat_const_grad.div(sqrt_const).detach(), 'L': L}, params, closure)
                 # print('model after suvbsolver = ', quad_func(flat_vk, flat_const_grad, full_hessian.mul(sqrt_const), L * sqrt_const))
                 # print('gradient of quadratic =', quad_func_grad(flat_vk, flat_const_grad, full_hessian, L))
                 # print('model g_phi after =', quad_func_grad(flat_vk, flat_const_grad, full_hessian.mul(sqrt_const), L * sqrt_const))
@@ -224,6 +196,8 @@ class BDGM(Optimizer):
                 vk = ttv.rollup_vector(flat_vk, vk, length, vk_numel)
                 # print(vk)
                 k += 1
+                if k == max_iter_outer:
+                    print('Exit max iteration. Not reach the stopping criterion')
             # print('k=', k)
             # print('vk=',vk, 'size= ', vk[0].size(), vk[1].size())
 

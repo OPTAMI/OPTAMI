@@ -1,19 +1,26 @@
 import torch
-
 from OPTAMI.sup import tuple_to_vec as ttv
 
 
-def third_derivative_vec(closure, params, vector):
+def flat_hvp(closure, list_params, vector):
     output = closure()
-    grads = torch.autograd.grad(output, params, create_graph=True)
+    flat_grad = ttv.tuple_to_vector(torch.autograd.grad(output, list_params, create_graph=True))
+    dot = flat_grad.mul(vector).sum()
+    hvp = ttv.tuple_to_vector(torch.autograd.grad(dot, list_params, create_graph=True))
+    return hvp, flat_grad
+
+
+def third_derivative_vec(closure, list_params, vector):
+    output = closure()
+    grads = torch.autograd.grad(output, list_params, create_graph=True)
     dot = 0.
     for i in range(len(grads)):
         dot += grads[i].mul(vector[i]).sum()
-    hvp = torch.autograd.grad(dot, params, create_graph=True)
+    hvp = torch.autograd.grad(dot, list_params, create_graph=True)
     dot_hes = 0.
     for i in range(len(grads)):
         dot_hes += hvp[i].mul(vector[i]).sum()
-    third_vp = torch.autograd.grad(dot_hes, params, retain_graph=False)
+    third_vp = torch.autograd.grad(dot_hes, list_params, retain_graph=False)
     hvp_det = []
     for pa in range(len(grads)):
         hvp_det.append(hvp[pa].detach())
@@ -28,7 +35,3 @@ def flat_hessian(flat_grads, params):
         # print(temp_hess)
         full_hessian.append(ttv.tuple_to_vector(temp_hess))
     return torch.stack(full_hessian)
-
-
-
-

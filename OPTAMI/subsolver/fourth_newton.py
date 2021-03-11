@@ -26,8 +26,8 @@ def dual_func(tau, ct, T, L):
     second = inversion(T, L, tau).mul(ct.square()).sum().div(2.)
     return first.add(second)
 
-def fourth_subsolver(c = None, A = None, T = None, U = None, L = 1e+3, eps = 1e-10, beta = 0.5):
-    if not L >= 0.0 :
+def fourth_subsolver(c = None, A = None, T = None, U = None, L = 0., fourth_line_search_eps = 1e-10):
+    if not L >= 0.:
         raise ValueError("Invalid Lipshitz constant: {}".format(L))
     if c.dim() != 1:
         raise ValueError("Should be a vector: {}".format(c))
@@ -54,7 +54,7 @@ def fourth_subsolver(c = None, A = None, T = None, U = None, L = 1e+3, eps = 1e-
     
     left_point = torch.tensor([0.])    
     middle_point = torch.tensor([2.])    
-    tau_best = l_s.ray_line_search(g, middle_point, left_point, eps = eps)
+    tau_best = l_s.ray_line_search(g, middle_point, left_point, eps=fourth_line_search_eps)
     #print(tau_best)
     invert = inversion(T, L, tau_best)
     
