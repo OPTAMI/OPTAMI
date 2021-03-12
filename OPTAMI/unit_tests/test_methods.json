@@ -1,14 +1,20 @@
 [
   {
     "algorithm": "Hyperfast",
-    "config": [
-      {"algorithms_precision": 1e-4, "algorithms_iteration": 15}
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration": 25, "config": {}}
     ]
   },
   {
     "algorithm": "BDGM",
-    "config": [
-      {"algorithms_precision": 1e-4, "algorithms_iteration": 15}
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration": 25, "config": {}}
+    ]
+  },
+  {
+    "algorithm": "Cubic_Newton",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration": 45, "config": {}}
     ]
   }
 ]

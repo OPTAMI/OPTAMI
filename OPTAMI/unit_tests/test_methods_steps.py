@@ -12,7 +12,8 @@ def f_pow_4(x):
 def test_steps():
     methods = {
         'Hyperfast': opt.Hyperfast,
-        'BDGM': opt.BDGM
+        'BDGM': opt.BDGM,
+        'Cubic_Newton': opt.Cubic_Newton
     }
 
     problems = {'f_pow_4': f_pow_4}
@@ -26,16 +27,16 @@ def test_steps():
     for problem in problem_setup:
         for test in tests:
             method = methods[test['algorithm']]
-            for config in test['config']:
+            for outer_setup in test['outer_setup']:
                 f = problems[problem["test_problem"]]
                 x = torch.tensor(problem["test_starting_point"]).requires_grad_()
-                optimizer = method([x], problem["L"], **config)
+                optimizer = method([x], problem["L"], **outer_setup["config"])
 
                 def closure():
                     optimizer.zero_grad()
                     return f(x)
 
-                for i in range(config["algorithms_iteration"]):
+                for i in range(outer_setup["algorithms_iteration"]):
                     optimizer.step(closure)
                 assert (closure() - problem["test_func_min"]) < \
-                       min(problem["problem_precision"], config["algorithms_precision"])
+                       min(problem["problem_precision"], outer_setup["algorithms_precision"])
