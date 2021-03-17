@@ -11,23 +11,17 @@ class Hyperfast(Optimizer):
         params (iterable): iterable of parameters to optimize or dicts defining
             parameter groups
         L (float, optional): Lipshitz constant of the Third-order (default: 1e+3)
-        eps (float, optional): Desired accuracy for the norm of the model's gradient,
-        used for the stopping criterion  (default: 1e-1)
-        lambdak_start(float, optional): Desired lambda for the first linear search.
-        Next lambda uses the previous as a warm start (default: 0.1)
-
     """
 
     def __init__(self, params, L=1e+3, eps=1e-1, p_order=3, subsolver=opt.BDGM,
-                 subsolver_params=None, subsolver_bdgm=None, tol_subsolve=None,
-                 subsolver_args=None, restarted = False, **kwargs):
+                 subsolver_bdgm=None, tol_subsolve=None,
+                 subsolver_args=None):
 
         if not L >= 0.0:
             raise ValueError("Invalid L: {}".format(L))
 
-        defaults = dict(L=L, eps=eps, p_order=p_order, subsolver=subsolver, subsolver_params=subsolver_params,
-                        subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve, subsolver_args=subsolver_args,
-                        restarted=restarted)
+        defaults = dict(L=L, eps=eps, p_order=p_order, subsolver=subsolver,
+                        subsolver_bdgm=subsolver_bdgm, tol_subsolve=tol_subsolve, subsolver_args=subsolver_args)
         super(Hyperfast, self).__init__(params, defaults)
 
         for group in self.param_groups:
@@ -52,34 +46,6 @@ class Hyperfast(Optimizer):
             state['xk'].share_memory_()
             state['yk'].share_memory_()
 
-    def get_cloned_state(self):
-        assert(len(self.param_groups) == 1)
-        group = self.param_groups[0]
-        params = group['params']
-        state = self.state[list(params)[0]]
-        cloned_state = {}
-        cloned_state['bigA'] = state['bigA'],
-        cloned_state['xk'] = [par.clone() for par in state['xk']]
-        cloned_state['yk'] = [par.clone() for par in state['yk']]
-        return cloned_state
-    
-    def set_state(self, new_state):
-        assert(len(self.param_groups) == 1)
-        group = self.param_groups[0]
-        params = group['params']
-        state = self.state[list(params)[0]]
-        state['bigA'] = new_state['bigA']    
-        state['xk'] = [par.clone() for par in new_state['xk']]
-        state['yk'] = [par.clone() for par in new_state['yk']]
-    
-    def restart(self):
-        assert(len(self.param_groups) == 1)
-        group = self.param_groups[0]
-        params = group['params']
-        state = self.state[list(params)[0]]
-
-        state['bigA'] = 0.0
-        state['xk'] = [par.clone() for par in state['yk']]
 
     def step(self, closure=None):
         """Performs a single optimization step.
@@ -95,15 +61,12 @@ class Hyperfast(Optimizer):
             params = group['params']
             state = self.state[list(params)[0]]
             subsolver = group['subsolver']
-            subsolver_params = group['subsolver_params']
             p_order = group['p_order']
             theta = state['theta']
             bigA = state['bigA']
             xk = state['xk']
             yk = state['yk']
-            eps = group['eps']
             L = group['L']
-            restarted = group['restarted']
 
             Hf = L * 3 / 2
             bigAplus = bigA
