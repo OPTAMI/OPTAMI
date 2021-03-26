@@ -32,10 +32,11 @@ def subsolve_cubic_problem(params, closure, L, zeros_tuple, subsolver, subsolver
         x_.grad = full_grad + hess_vec + x_.mul(L * x_.norm())
 
         if x_.grad.norm() < inner_rel_err * full_grad.norm():
+            print('Inner method reach stopping criterion on', i)
             i = number_inner_iter + 1
         # step of the problem
         optimizer.step()
-
+        i = i+1
     if i == number_inner_iter:
         print('Inner method not reach stopping criterion')
     return x_.detach()  # flat vector
