@@ -1,11 +1,14 @@
 """
-OPTAMI is a package implementing various optimization algorithms for pyTorch optimizer.
+OPTAMI is a package implementing various optimization algorithms for PyTorch optimizer.
 """
 
-from .bdgm import BDGM
-from .hyperfast import Hyperfast
 from .cubic_newton import Cubic_Newton
+from .bdgm import BDGM
+from .superfast import Superfast
+from .hyperfast import Hyperfast
 
-del bdgm
-del hyperfast
+
 del cubic_newton
+del bdgm
+del superfast
+del hyperfast
