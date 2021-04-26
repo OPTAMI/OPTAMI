@@ -2,6 +2,17 @@ import torch
 from OPTAMI.sup import tuple_to_vec as ttv
 
 
+def hess_vec_prod(closure, list_params, vec_tuple):  # Return tuple format of hessian-vector-product
+    # should be more friendly for sparse tensors
+    output = closure()
+    grads = torch.autograd.grad(output, list_params, create_graph=True)
+    dot = 0.
+    for i in range(len(grads)):
+        dot += grads[i].mul(vec_tuple[i]).sum()
+    hvp = torch.autograd.grad(dot, list_params, retain_graph=False)
+    return hvp, grads
+
+
 def flat_hvp(closure, list_params, vector):
     output = closure()
     flat_grad = ttv.tuple_to_vector(torch.autograd.grad(output, list_params, create_graph=True))
