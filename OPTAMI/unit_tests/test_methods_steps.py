@@ -12,6 +12,7 @@ def f_pow_4(x):
 def test_steps():
     methods = {
         'Hyperfast': opt.Hyperfast,
+        'Superfast': opt.Superfast,
         'BDGM': opt.BDGM,
         'Cubic_Newton': opt.Cubic_Newton
     }

@@ -6,6 +6,12 @@
     ]
   },
   {
+    "algorithm": "Superfast",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration": 25, "config": {}}
+    ]
+  },
+  {
     "algorithm": "BDGM",
     "outer_setup": [
       {"algorithms_precision": 1e-4, "algorithms_iteration": 25, "config": {}}
