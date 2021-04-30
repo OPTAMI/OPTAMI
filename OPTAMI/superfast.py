@@ -8,6 +8,7 @@ class Superfast(Optimizer):
     """Implements Superfast Second-Order Method.
     Nesterov, Y., 2020. Superfast second-order methods for unconstrained convex optimization UCL-Université Catholique de Louvain, CORE.
     https://dial.uclouvain.be/pr/boreal/object/boreal%3A227146/
+    Joint implementation with Golubeva T.
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining
             parameter groups

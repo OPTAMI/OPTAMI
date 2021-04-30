@@ -39,7 +39,7 @@ class BDGM(Optimizer):
 		subsolver_args (dict) : arguments for `subsolver_bdgm`
 	"""
 
-    def __init__(self, params, L=1e+1, max_iter_outer=20, subsolver_bdgm=None, tol_subsolve=None,
+    def __init__(self, params, L=1e+1, max_iter_outer=50, subsolver_bdgm=None, tol_subsolve=None,
                  subsolver_args=None):
         if not L >= 0.0:
             raise ValueError("Invalid L: {}".format(L))
