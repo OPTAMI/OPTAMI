@@ -1,12 +1,19 @@
 import json
 import torch
 import OPTAMI as opt
+import numpy as np
 
 
-
-def f_pow_4(x):
+def f_small_pow_4(x):
     return x.square().square().sum()
 
+
+def nesterov_lower_3(x):
+    d = 100
+    A = torch.eye(d)
+    for i in range(d - 1):
+        A[i][i + 1] = -1.
+    return A.mv(x).square().square().sum().div(4) - x[0]
 
 
 def test_steps():
@@ -17,7 +24,7 @@ def test_steps():
         'Cubic_Newton': opt.Cubic_Newton
     }
 
-    problems = {'f_pow_4': f_pow_4}
+    problems = {'f_small_pow_4': f_small_pow_4, 'nesterov_lower_3': nesterov_lower_3}
 
     with open('test_methods.json', 'r') as re:
         tests = json.loads(re.read())
@@ -30,14 +37,27 @@ def test_steps():
             method = methods[test['algorithm']]
             for outer_setup in test['outer_setup']:
                 f = problems[problem["test_problem"]]
-                x = torch.tensor(problem["test_starting_point"]).requires_grad_()
+                # To define x by generator "test_starting_point" should be with two dimensions.
+                # The first dimension is a vector dimension. The second dimension is a value
+                if np.ndim(problem["test_starting_point"]) == 2:
+                    x = torch.ones(problem["test_starting_point"][0][0])
+                    x = x.mul(problem["test_starting_point"][1][0])
+                    x.requires_grad_()
+                else:
+                    x = torch.tensor(problem["test_starting_point"]).requires_grad_()
                 optimizer = method([x], problem["L"], **outer_setup["config"])
+                precision = max(problem["problem_precision"], outer_setup["algorithms_precision"])
+                iteration = problem["problem_iteration"] * outer_setup["algorithms_iteration_mul"]
 
                 def closure():
                     optimizer.zero_grad()
                     return f(x)
 
-                for i in range(outer_setup["algorithms_iteration"]):
+                i = 0
+                while i < iteration:
                     optimizer.step(closure)
-                assert (closure() - problem["test_func_min"]) < \
-                       min(problem["problem_precision"], outer_setup["algorithms_precision"])
+                    if closure() - problem["test_func_min"] < precision:
+                        i = iteration
+                    i += 1
+
+                assert (closure() - problem["test_func_min"]) < precision
