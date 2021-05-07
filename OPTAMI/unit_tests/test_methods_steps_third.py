@@ -26,10 +26,10 @@ def test_steps():
 
     problems = {'f_small_pow_4': f_small_pow_4, 'nesterov_lower_3': nesterov_lower_3}
 
-    with open('test_methods.json', 'r') as re:
+    with open('test_methods_third.json', 'r') as re:
         tests = json.loads(re.read())
 
-    with open('test_problems.json', 'r') as re:
+    with open('test_problems_third.json', 'r') as re:
         problem_setup = json.loads(re.read())
 
     for problem in problem_setup:
@@ -48,6 +48,7 @@ def test_steps():
                 optimizer = method([x], problem["L"], **outer_setup["config"])
                 precision = max(problem["problem_precision"], outer_setup["algorithms_precision"])
                 iteration = problem["problem_iteration"] * outer_setup["algorithms_iteration_mul"]
+                min_solution = 1000000000.
 
                 def closure():
                     optimizer.zero_grad()
@@ -56,8 +57,11 @@ def test_steps():
                 i = 0
                 while i < iteration:
                     optimizer.step(closure)
-                    if closure() - problem["test_func_min"] < precision:
+                    loss = closure().item()
+                    if loss < min_solution:
+                        min_solution = loss
+                    if loss - problem["test_func_min"] < precision:
                         i = iteration
                     i += 1
 
-                assert (closure() - problem["test_func_min"]) < precision
+                assert (min_solution - problem["test_func_min"]) < precision
