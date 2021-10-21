@@ -9,7 +9,7 @@ def hess_vec_prod(closure, list_params, vec_tuple):  # Return tuple format of he
     dot = 0.
     for i in range(len(grads)):
         dot += grads[i].mul(vec_tuple[i]).sum()
-    hvp = torch.autograd.grad(dot, list_params, retain_graph=False)
+    hvp = torch.autograd.grad(dot, list_params)
     return hvp, grads
 
 
@@ -17,7 +17,7 @@ def flat_hvp(closure, list_params, vector):
     output = closure()
     flat_grad = ttv.tuple_to_vector(torch.autograd.grad(output, list_params, create_graph=True))
     dot = flat_grad.mul(vector).sum()
-    hvp = ttv.tuple_to_vector(torch.autograd.grad(dot, list_params, create_graph=True))
+    hvp = ttv.tuple_to_vector(torch.autograd.grad(dot, list_params))
     return hvp, flat_grad
 
 
@@ -31,7 +31,7 @@ def third_derivative_vec(closure, list_params, vector):
     dot_hes = 0.
     for i in range(len(grads)):
         dot_hes += hvp[i].mul(vector[i]).sum()
-    third_vp = torch.autograd.grad(dot_hes, list_params, retain_graph=False)
+    third_vp = torch.autograd.grad(dot_hes, list_params)
     hvp_det = []
     for pa in range(len(grads)):
         hvp_det.append(hvp[pa].detach())

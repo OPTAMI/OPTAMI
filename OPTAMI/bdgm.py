@@ -87,7 +87,7 @@ class BDGM(Optimizer):
                 # print(full_hessian)
 
                 # SVD decomposition
-                eigenvalues, eigenvectors = torch.symeig(full_hessian, eigenvectors=True)
+                eigenvalues, eigenvectors = torch.linalg.eigh(full_hessian)
 
                 if test_active:
                     if eigenvectors.mm(torch.diag(eigenvalues)).mm(eigenvectors).sub(full_hessian).max().ge(
@@ -158,7 +158,7 @@ class BDGM(Optimizer):
                 # print(list(params))
                 # Compute gradient in shifted point xk + v
                 output_vk = closure()
-                grad_vk = torch.autograd.grad(output_vk, list(params), retain_graph=False)
+                grad_vk = torch.autograd.grad(output_vk, list(params))
                 grad_vk_norm_new = ttv.tuple_norm_square(grad_vk).to(torch.double).sqrt()
                 if grad_vk_norm_new < grad_vk_norm:
                     grad_vk_norm = grad_vk_norm_new
@@ -182,7 +182,7 @@ class BDGM(Optimizer):
                 # computing for subproblem
                 if (subsolver_bdgm is None) & (tol_subsolve is None) & (subsolver_args is None):
                     flat_vk = fn.fourth_subsolver(flat_const_grad.div(sqrt_const), full_hessian,
-                                                  eigenvalues, eigenvectors, L, fourth_line_search_eps = 1e-10)
+                                                  eigenvalues, eigenvectors, L)
                 else:
                     flat_vk = sub_solve(tol_subsolve, subsolver_bdgm, subsolver_args,
                                            {'c': flat_const_grad.div(sqrt_const).detach(), 'L': L}, params, closure)

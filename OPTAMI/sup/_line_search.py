@@ -1,5 +1,5 @@
 import torch
-
+import math
     
 def segment_line_search_fib(g, left_point, right_point, eps = 1e-10):
     

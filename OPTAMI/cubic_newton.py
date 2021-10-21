@@ -22,7 +22,7 @@ class Cubic_Newton(Optimizer):
 
     """
 
-    def __init__(self, params, L, subsolver=torch.optim.Adam, subsolver_args=None,
+    def __init__(self, params, L, subsolver=None, subsolver_args=None,
                  number_inner_iter=100, inner_rel_err=0.1):
 
         if subsolver_args is None:
@@ -67,7 +67,10 @@ class Cubic_Newton(Optimizer):
             subsolver_args = group['subsolver_args']
             number_inner_iter = group['number_inner_iter']
             inner_rel_err = group['inner_rel_err']
-            flat_xk = css.subsolve_cubic_problem(params, closure, L, zeros_tuple,
+            if subsolver is None:
+                flat_xk = css.cubic_subsolver(L, closure, params)
+            else:
+                flat_xk = css.subsolve_cubic_problem(params, closure, L, zeros_tuple,
                                                  subsolver, subsolver_args, number_inner_iter, inner_rel_err)
 
             xk = ttv.rollup_vector(flat_xk, zeros_tuple)
