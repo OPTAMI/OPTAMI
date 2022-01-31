@@ -1,8 +1,0 @@
-[
-  {
-    "algorithm": "TFGM",
-    "outer_setup": [
-      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 1, "config": {}}
-    ]
-  }
-]

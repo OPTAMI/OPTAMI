@@ -1,4 +1,0 @@
-[
-  {"test_problem":  "nesterov_lower_1",
-    "test_starting_point": [[100],[0.0]], "test_func_min": -12.5, "L":  1.0, "problem_precision": 1.0, "problem_iteration": 1000}
-]
