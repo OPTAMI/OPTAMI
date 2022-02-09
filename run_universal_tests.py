@@ -49,7 +49,7 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     INPUT_DIM = 784
     OUTPUT_DIM = 2
 
-    TIME_LIMIT = 30
+    TIME_LIMIT = 60
     L = 4.0
     F_STAR_PLUS_EPSILON = 0.3
     F_REASONABLE = 0.4
@@ -86,6 +86,8 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
 
             if toc - tic > TIME_LIMIT:
                 break
+    
+    print(len(losses), losses[:5])
 
     if Algorithm.MONOTONE:
         print(f"test_monotonicity ({classname}) ... ", end="")
@@ -132,4 +134,4 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     print(f"OK" if failed_counter == 0 else f"FAILED (failures={failed_counter})")
 
     if failed_counter > 0:
-        raise Exception(f"Universasl tests failed with {failed_counter} failures")
+        raise Exception(f"Universal tests failed with {failed_counter} failures")
