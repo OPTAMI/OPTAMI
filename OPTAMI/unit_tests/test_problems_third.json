@@ -1,6 +1,0 @@
-[
-  {"test_problem":  "f_small_pow_4",
-    "test_starting_point": [1.0, 2.0], "test_func_min": 0.0, "L":  24, "problem_precision": 1e-6, "problem_iteration": 20},
-  {"test_problem":  "nesterov_lower_3",
-    "test_starting_point": [[100],[0.0]], "test_func_min": -75.0, "L":  6, "problem_precision": 50, "problem_iteration": 200}
-]
