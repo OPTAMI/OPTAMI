@@ -1,10 +1,10 @@
 import unittest
 import unittest.mock
 import torch
-from similar_triangles import SimilarTriangles
+from .similar_triangles import SimilarTriangles
 
 
-class TestCalculator(unittest.TestCase):
+class TestSimilarTriangles(unittest.TestCase):
     def setUp(self):
         self.model = torch.nn.Linear(2, 1)
         self.criterion = torch.nn.MSELoss()

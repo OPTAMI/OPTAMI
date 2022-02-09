@@ -18,8 +18,9 @@ class SimilarTriangles(Optimizer):
         zeta (float): coefficient to multiply/divide L on with the aim of adaptation (default: 2.)
         verbose (bool): flag to control additional logs, here - on adaptation of L (default: True)
     """
+    MONOTONE=False
 
-    def __init__(self, params, L: float = 1e+2, is_adaptive: bool = False,
+    def __init__(self, params, L: float = 1e+2, is_adaptive: bool = True,
                  max_adapt_iters: int = 10, zeta: float = 2., verbose: bool = True):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
