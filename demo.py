@@ -8,8 +8,6 @@ from torch.autograd import Variable
 import OPTAMI
 import torch
 import time
-import sys
-sys.path.insert(0, '..')
 
 
 def zero_all(model):
