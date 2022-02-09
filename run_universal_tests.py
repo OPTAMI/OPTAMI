@@ -130,3 +130,6 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
 
     print("\n----------------------------------------------------------------------\n")
     print(f"OK" if failed_counter == 0 else f"FAILED (failures={failed_counter})")
+
+    if failed_counter > 0:
+        raise Exception(f"Universasl tests failed with {failed_counter} failures")
