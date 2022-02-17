@@ -90,7 +90,7 @@ Unit tests are implemented using the python `unittest` library, and are provided
 Universal tests check the expected behaviour and minimal performance requiremences for the algorithms on some toy problems. The main goal of these tests is to check the guarantees provided by the methods and eliminate the divergence of the algorithms. The universal tests are not available on edit for the side contributor, but can be complicated by authors in order to provide some more strong guarantees (for example, by checking the convergence rate on the problems with the known solution). In these cases, some algorithms that did not passed the enhanced tests may be deleted from _main_ branch until the correction (so we recommend to use only release versions of out library as a dependency in your project). All the universal tests presented in library can be launched manually with a command `./run_universal_tests.py`.
 
 Now, the list of the used toy problems is as follows:
-* MNIST dataset (<img src="https://render.githubusercontent.com/render/math?math=n = 784, m = 60000">), classification into even/odd numbers with simple logistic regression model.
+* MNIST dataset (n = 784, m = 60000), classification into even/odd numbers with simple logistic regression model.
 
 ### 5.3 Performance tests
 
