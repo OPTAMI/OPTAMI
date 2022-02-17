@@ -5,12 +5,18 @@
 - [OPTAMI – OPTimization for Applied Mathematics and Informatics](#optami--optimization-for-applied-mathematics-and-informatics)
   - [Table of Contents](#table-of-contents)
   - [1. About](#1-about)
-  - [2. Supported Optimizers](#2-supported-optimizers)
+  - [2. Supported algorithms](#2-supported-algorithms)
+    - [2.1 First-order methods](#21-first-order-methods)
+    - [2.2 Second-order methods](#22-second-order-methods)
+    - [2.3 Tensor methods](#23-tensor-methods)
   - [3. Citation](#3-citation)
   - [4. For contributors](#4-for-contributors)
-    - [4.1 Criteria for contributed algorithms:](#41-criteria-for-contributed-algorithms)
-    - [4.2 Recommendations for contributed algorithms:](#42-recommendations-for-contributed-algorithms)
+    - [4.1 Criteria for contributed algorithms](#41-criteria-for-contributed-algorithms)
+    - [4.2 Recommendations for contributed algorithms](#42-recommendations-for-contributed-algorithms)
   - [5. Basic tests](#5-basic-tests)
+    - [5.1 Unit tests](#51-unit-tests)
+    - [5.2 Universal tests](#52-universal-tests)
+    - [5.3 Performance tests](#53-performance-tests)
   - [6. Rights](#6-rights)
 
 
@@ -19,9 +25,24 @@
 This package is dediated to High-order optimization methods.
 Methods can be used like basic PyTorch Optimizers.
 
-## 2. Supported Optimizers
+## 2. Supported algorithms
 
-Now there are 5 main methods:
+Altough the development of this library was motivated primarily by the need in implementations of high-order optimization methods, we call contributors to commit methods of any order, and also already provide some of first-order methods in this library. Below we list all the currently supported algorithms divided into categories by their order, with the links on their source papers and/or their wiki pages.
+
+### 2.1 First-order methods
+* Similar Triangles method (full-gradient accelerated \[adaptive\] gradient method)
+
+   _Gasnikov, A.V., Nesterov, Y.E._ Universal Method for Stochastic Composite Optimization Problems. Comput. Math. and Math. Phys. **58**, 48–64 (2018). https://doi.org/10.1134/S0965542518010050
+
+### 2.2 Second-order methods
+* Cubic regularized Newton method
+
+   _Nesterov, Y., Polyak, B._ Cubic regularization of Newton method and its global performance. Math. Program. **108**, 177–205 (2006). https://doi.org/10.1007/s10107-006-0706-8
+
+### 2.3 Tensor methods
+TBD
+
+<!-- Now there are 5 main methods:
 1. Hyperfast Second-Order Method (hyperfast.py)
    https://www.researchgate.net/publication/339390966_Near-Optimal_Hyperfast_Second-Order_Method_for_convex_optimization_and_its_Sliding
 2. Superfast Second-Order Method (superfast.py)
@@ -31,14 +52,14 @@ Now there are 5 main methods:
 4. Cubic Newton Method (cubic_newton.py)
    https://link.springer.com/content/pdf/10.1007/s10107-006-0706-8.pdf
 5. Triangle Fast Gradient Method (TFGM.py)
-   https://link.springer.com/content/pdf/10.1134/S0965542518010050.pdf
+   https://link.springer.com/content/pdf/10.1134/S0965542518010050.pdf -->
 
 ## 3. Citation
 
 TBA
 
 ## 4. For contributors
-### 4.1 Criteria for contributed algorithms:
+### 4.1 Criteria for contributed algorithms
 1. Class describing the algorithm (we denote it by `Algorithm`) is derived from torch.optim.optimizer.Optimizer
 2. The paper introducing algorithm and the list of contributors are presented in docstring for `Algorithm`
 3. The only required argument for constructor `Algorithm::__init__` is `params`
@@ -46,13 +67,13 @@ TBA
 5. All the necessary constants (from Lipschitz condition, Hölder condition etc.) are the arguments of `Algorithm::__init__`, are provided with reasonable default value (working for the _Basic tests_) and have corresponding check raising `ValueError` if value is incorrect
 6. Constructor `Algorithm::__init__` takes non-required boolean argument `verbose` controlling all the printing in stdout may be produced by `Algorithm`
 7. Overridden method `Algorithm::step` takes one required parameter `closure`, that is the function evaluating loss (with a proper PyTorch forwarding) and that takes non-required boolean argument `backward` (if it is True, `closure` automatically performs backpropagation)
-8. For the every `group` in `self.param_groups`, the commonly used variables (like constants approximations, counters etc.) are stored in `self.state[group['params'][0]]`
+8. For every `group` in `self.param_groups`, commonly used variables (like constants approximations, counters etc.) are stored in `self.state[group['params'][0]]`
 9. All the param-specific variables (typically x_k, y_k, z_k sequences) are stored by parts in `self.state[p]` for the corresponding `p` elements of `group['params']` (note, that it is very undesirable to storage anything in `self.state` in a form of List[Tensor] or Dict[Tensor], if it is possible to satisfy the prescribed requirement)
 10. If `Algorithm` requires any additional functions for auxiliary calculations (excluding auxiliary optimization problems in need of iterative gradient-based subsolver), they are provided as a self-sufficient procedures before and outside the `Algorithm` implementation (note, that it is undesirable to use `@staticmethod` for this purpose)
 11. Do not contribute several algorithms differing only in the usage of L-adaptivity, restarts procedure etc. If there is the special envelope in package implementing one of this extensions, make your `Algorithm` compatible with it. If there is not, add corresponding non-required boolean argument to `Algorithm::__init__`, controlling their usage. For backwards compatibility, if algorithm supports the compound usage with some envelope, add the corresponding non-required boolean argument anyway with default value `None` and further check that raises `AttributeError` if value is not `None`
 12. Make sure that `Algorithm` passes _Basic tests_
 
-### 4.2 Recommendations for contributed algorithms:
+### 4.2 Recommendations for contributed algorithms
 1. Make sure all the methods have clear comments
 2. `Algorithm` and override methods should be provided with docstrings in [Google Style](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 3. Try to use `@torch.no_grad()` annotation instead of `with torch.no_grad():` when it is possible
@@ -60,8 +81,24 @@ TBA
 
 ## 5. Basic tests
 
-Datasets info:
-MNIST: dimension = 784, samples = 60000, L_3 > 0.5
+The basic tests are intended to check the correctness of contributed algorithms and benchmark them. These tests are launched automatically after the every update of the _main_ branch of repository, so we guarantee that implemented algorithms are correct and their performance non-decrease with the updates of implementations. Basic tests consist of three groups of tests:
+* Unit tests
+* Universal tests
+* Performance tests
+
+### 5.1 Unit tests
+Unit tests are implemented using the python `unittest` library, and are provided together with the source code of every algorithm in a distinct file. E.g., if algorithm is implemented in `algorithm.py`, unit tests are implemented in `test_algorithm.py` in the same directory. We ask contributors to provide their own versions of unit tests for the contributed algorithms. All the unit tests presented in library can be launched manually with a command `./run_unit_tests.sh`.
+
+### 5.2 Universal tests
+
+Universal tests check the expected behaviour and minimal performance requiremences for the algorithms on some toy problems. The main goal of these tests is to check the guarantees provided by the methods and eliminate the divergence of the algorithms. The universal tests are not available on edit for the side contributor, but can be complicated by authors in order to provide some more strong guarantees (for example, by checking the convergence rate on the problems with the known solution). In these cases, some algorithms that did not passed the enhanced tests may be deleted from _main_ branch until the correction (so we recommend to use only release versions of out library as a dependency in your project). All the universal tests presented in library can be launched manually with a command `./run_universal_tests.py`.
+
+Now, the list of the used toy problems is as follows:
+* MNIST dataset ($n = 784$, $m = 60000$), classification into even/odd numbers with simple logistic regression model.
+
+### 5.3 Performance tests
+
+TBD
 
 ## 6. Rights
-Copyright (C) 2020 Dmitry Kamzolov
+Copyright © 2020–2022 Dmitry Kamzolov

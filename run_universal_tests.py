@@ -49,10 +49,10 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     INPUT_DIM = 784
     OUTPUT_DIM = 2
 
-    TIME_LIMIT = 60
+    TIME_LIMIT = 80
     L = 4.0
-    F_STAR_PLUS_EPSILON = 0.3
-    F_REASONABLE = 0.4
+    F_STAR_PLUS_EPSILON = 0.35
+    F_REASONABLE = 0.45
 
     failed_counter = 0
 
@@ -67,6 +67,9 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
 
     while toc - tic < TIME_LIMIT:
         for i, (images, labels) in enumerate(train_loader):
+            if i != 0:
+                continue
+
             def closure(backward=False):
                 prediction = model(image)
                 loss = model.criterion(prediction, label)
@@ -86,12 +89,9 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
 
             if toc - tic > TIME_LIMIT:
                 break
-    
-    print(len(losses), losses[:5])
 
     if Algorithm.MONOTONE:
         print(f"test_monotonicity ({classname}) ... ", end="")
-        print(losses)
         if all(x >= y for x, y in zip(losses, losses[1:])):
             print("ok")
         else:

@@ -87,6 +87,7 @@ model = zero_all(LogisticRegression(INPUT_DIM, OUTPUT_DIM))
 L = 4.0
 
 optimizers = {
+    'CubicRegularizedNewton': OPTAMI.CubicRegularizedNewton(model.parameters(), L=L, subsolver=torch.optim.Adam),
     'SimilarTriangles': OPTAMI.SimilarTriangles(model.parameters(), L=L, is_adaptive=True)
 }
 
@@ -116,7 +117,7 @@ if PLOT:
 
     plt.title('Logistic Regression for MNIST')
     plt.xlabel('Iterations')
-    plt.ylabel('$\\log \\frac{f(x_i)-f(x_*)}{f(x_0)-f(x_*)}$')
+    plt.ylabel('$\\log\\;\\frac{f(x_i)-f(x_*)}{f(x_0)-f(x_*)}$')
 
     plt.legend()
     plt.tight_layout()
