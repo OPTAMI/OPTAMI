@@ -68,7 +68,7 @@ TBA
 10. If `Algorithm` requires any additional functions for auxiliary calculations (excluding auxiliary optimization problems in need of iterative gradient-based subsolver), they are provided as a self-sufficient procedures before and outside the `Algorithm` implementation (note, that it is undesirable to use `@staticmethod` for this purpose)
 11. Do not contribute several algorithms differing only in the usage of L-adaptivity, restarts procedure etc. If there is the special envelope in package implementing one of this extensions, make your `Algorithm` compatible with it. If there is not, add corresponding non-required boolean argument to `Algorithm::__init__`, controlling their usage. For backwards compatibility, if algorithm supports the compound usage with some envelope, add the corresponding non-required boolean argument anyway with default value `None` and further check that raises `AttributeError` if value is not `None`
 12. Make sure that `Algorithm` passes _Basic tests_
-13. `Algorithm` must have static boolean attribute `MONOTONE` indicating if method guarantee the monotonic decreasing of function value
+13. `Algorithm` must have static boolean attribute `MONOTONE` indicating whether method guarantees the monotonic decreasing of function value
 
 ### 4.2 Recommendations for contributed algorithms
 1. Make sure all the methods have clear comments
