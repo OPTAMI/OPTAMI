@@ -87,8 +87,9 @@ model = zero_all(LogisticRegression(INPUT_DIM, OUTPUT_DIM))
 L = 4.0
 
 optimizers = {
-    'CubicRegularizedNewton': OPTAMI.CubicRegularizedNewton(model.parameters(), L=L, subsolver=torch.optim.Adam),
-    'SimilarTriangles': OPTAMI.SimilarTriangles(model.parameters(), L=L, is_adaptive=True)
+    'Superfast': OPTAMI.Superfast(model.parameters(), L=L, subsolver=torch.optim.Adam, max_iters=100)#,
+    # 'CubicRegularizedNewton': OPTAMI.CubicRegularizedNewton(model.parameters(), L=L, subsolver=torch.optim.Adam),
+    # 'SimilarTriangles': OPTAMI.SimilarTriangles(model.parameters(), L=L, is_adaptive=True)
 }
 
 if PLOT:

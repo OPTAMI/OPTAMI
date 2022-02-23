@@ -33,7 +33,7 @@ def flat_hvp(closure, list_params, vector):
     return hvp, flat_grad
 
 
-def third_derivative_vec(closure, params, vector):
+def third_derivative_vec(closure, params, vector, flat=True):
     output = closure()
     grads = torch.autograd.grad(output, params, create_graph=True)
     dot = 0.
@@ -45,7 +45,10 @@ def third_derivative_vec(closure, params, vector):
         dot_hes += hvp[i].mul(vector[i]).sum()
     third_vp = torch.autograd.grad(dot_hes, params)
     hvp_det = [hvp[i].detach() for i in range(len(grads))]
-    return third_vp, hvp_det
+    if flat:
+        return tuple_to_vec.tuple_to_vector(third_vp), tuple_to_vec.tuple_to_vector(hvp_det)
+    else:
+        return third_vp, hvp_det
 
 
 def flat_hessian(flat_grads, params):

@@ -1,0 +1,1 @@
+from .superfast import Superfast
