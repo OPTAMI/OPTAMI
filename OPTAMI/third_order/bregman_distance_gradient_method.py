@@ -1,7 +1,7 @@
 import math
 import torch
 import datetime
-from torch_optimizer import Optimizer
+from torch.optim.optimizer import Optimizer
 from OPTAMI.utils import tuple_to_vec, derivatives, line_search
 
 
