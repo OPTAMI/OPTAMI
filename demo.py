@@ -74,8 +74,8 @@ class LogisticRegression(torch.nn.Module):
 BATCH_SIZE = 5000
 INPUT_DIM = 784
 OUTPUT_DIM = 2
-EPOCHS = 7
-PLOT = True
+EPOCHS = 5
+PLOT = False
 NORMALIZE_PLOT = True
 SEED = 777
 torch.manual_seed(SEED)
@@ -87,7 +87,8 @@ model = zero_all(LogisticRegression(INPUT_DIM, OUTPUT_DIM))
 L = 4.0
 
 optimizers = {
-    'Superfast': OPTAMI.Superfast(model.parameters(), L=L, subsolver=torch.optim.Adam, max_iters=100)#,
+    'Superfast_old': OPTAMI.Superfast(model.parameters(), L=L, old=True),
+    'Superfast': OPTAMI.Superfast(model.parameters(), L=L)
     # 'CubicRegularizedNewton': OPTAMI.CubicRegularizedNewton(model.parameters(), L=L, subsolver=torch.optim.Adam),
     # 'SimilarTriangles': OPTAMI.SimilarTriangles(model.parameters(), L=L, is_adaptive=True)
 }

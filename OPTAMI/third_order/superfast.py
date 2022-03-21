@@ -61,15 +61,17 @@ class Superfast(Optimizer):
                 if ('v' not in state) or ('x' not in state):
                     state['v'] = p.clone()
                     state['x'] = p.clone()
-                    state['x0'] = p.clone()
+                    state['x0'] = p.detach().clone()
                     state['df_sum'] = torch.zeros_like(p)
 
                 with torch.no_grad():
                     v = state['v']
                     p.mul_(alpha).add_(v, alpha=1-alpha)
 
-            BDGM(group['params'], L=L, subsolver=subsolver, verbose=self.verbose,
-                 subsolver_args=subsolver_args, max_iters=max_iters).solve(closure)
+            BDGM(
+                group['params'], L=L, subsolver=subsolver, verbose=self.verbose, 
+                subsolver_args=subsolver_args, max_iters=max_iters
+            ).solve(closure)
 
             for p in group['params']:
                 state = self.state[p]
@@ -84,9 +86,18 @@ class Superfast(Optimizer):
                 with torch.no_grad():
                     state['df_sum'].add_(p.grad, alpha=a)
 
+            norm = 0
+            for p in group['params']:
+                state = self.state[p]
+                with torch.no_grad():
+                    norm += tuple_to_vec.tuple_norm_square(state['df_sum'])
+            norm = norm.pow(1./3)
+
+            for p in group['params']:
+                state = self.state[p]
+                with torch.no_grad():
                     x0 = state['x0']
-                    state['v'].zero_().add_(x0).sub_(state['df_sum'], alpha=1. /
-                                                     tuple_to_vec.tuple_norm_square(state['df_sum']).pow(1./3))
+                    state['v'].zero_().add_(x0).sub_(state['df_sum'], alpha=1/norm)
 
             state_common['k'] += 1
 

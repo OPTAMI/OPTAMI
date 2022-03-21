@@ -1,14 +1,14 @@
-# OPTAMI – OPTimization for Applied Mathematics and Informatics
+# OPTAMI: OPTimization for Applied Mathematics and Informatics
 
 ## Table of Contents
 
-- [OPTAMI – OPTimization for Applied Mathematics and Informatics](#optami--optimization-for-applied-mathematics-and-informatics)
+- [OPTAMI: OPTimization for Applied Mathematics and Informatics](#optami-optimization-for-applied-mathematics-and-informatics)
   - [Table of Contents](#table-of-contents)
   - [1. About](#1-about)
   - [2. Supported algorithms](#2-supported-algorithms)
     - [2.1 First-order methods](#21-first-order-methods)
     - [2.2 Second-order methods](#22-second-order-methods)
-    - [2.3 Tensor methods](#23-tensor-methods)
+    - [2.3 Third-order methods](#23-third-order-methods)
   - [3. Citation](#3-citation)
   - [4. For contributors](#4-for-contributors)
     - [4.1 Criteria for contributed algorithms](#41-criteria-for-contributed-algorithms)
@@ -22,8 +22,7 @@
 
 ## 1. About
 
-This package is dediated to High-order optimization methods.
-Methods can be used like basic PyTorch Optimizers.
+This package is dedicated to high-order optimization methods. All the methods can be used similarly to standard PyTorch optimizers.
 
 ## 2. Supported algorithms
 
@@ -39,8 +38,10 @@ Altough the development of this library was motivated primarily by the need in i
 
    _Nesterov, Y., Polyak, B._ Cubic regularization of Newton method and its global performance. Math. Program. **108**, 177–205 (2006). https://doi.org/10.1007/s10107-006-0706-8
 
-### 2.3 Tensor methods
-TBD
+### 2.3 Third-order methods
+* Superfast method
+
+   _Nesterov, Y._ Superfast second-order methods for unconstrained convex optimization. Journal of Optimization Theory and Applications **191**, 1–30 (2021). https://doi.org/10.1007/s10957-021-01930-y
 
 <!-- Now there are 5 main methods:
 1. Hyperfast Second-Order Method (hyperfast.py)

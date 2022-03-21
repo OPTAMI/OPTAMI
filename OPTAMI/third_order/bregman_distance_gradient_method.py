@@ -1,5 +1,6 @@
 import math
 import torch
+import datetime
 from torch_optimizer import Optimizer
 from OPTAMI.utils import tuple_to_vec, derivatives, line_search
 
@@ -33,77 +34,73 @@ class BDGM:
         self.subsolver_args = subsolver_args
         self.verbose = verbose
 
-    def _add_x(self, params, x, alpha=1):
-        x_ = tuple_to_vec.rollup_vector(x, list(params))
+    def _add_x(self, params, x_rolledup, alpha=1):
         with torch.no_grad():
             for i, p in enumerate(params):
-                p.add_(x_[i], alpha=alpha)
+                p.add_(x_rolledup[i], alpha=alpha)
 
-    def _check_stopping_condition(self, closure, params, x, g_norm):
-        self._add_x(params, x)
+    def _check_stopping_condition(self, closure, params, x_rolledup, g_norm):
+        self._add_x(params, x_rolledup)
         df_norm = tuple_to_vec.tuple_to_vector(
             torch.autograd.grad(closure(), list(params))).norm()
-        self._add_x(params, x, alpha=-1)
+        self._add_x(params, x_rolledup, alpha=-1)
 
-        if self.verbose:
-            print(f"g_norm = {g_norm}, df_norm = {df_norm}")
+        # if self.verbose:
+        #     rhs = 1/6 * df_norm
+        #     print(f"g_norm = {g_norm}, df_norm / 6 = {rhs}")
 
         return g_norm <= 1/6 * df_norm
 
     def solve(self, closure, max_iters_outer: int = 50):
         """Solves a subproblem.
-                Arguments:
-                        closure (callable): A closure that reevaluates the model and returns the loss.
-                """
+        Arguments:
+            closure (callable): a closure that reevaluates the model and returns the loss.
+        """
         closure = torch.enable_grad()(closure)
 
         df = tuple_to_vec.tuple_to_vector(
             torch.autograd.grad(closure(), list(self.params), create_graph=True))
         x = torch.zeros_like(df)
+        x_rolledup = tuple_to_vec.rollup_vector(x, list(self.params))
 
         if self.subsolver is None:
-            H = derivatives.flat_hessian(df, self.params)
+            H = derivatives.flat_hessian(df, self.params).to(torch.double)
+            T, U = torch.linalg.eigh(H)
 
         for _ in range(max_iters_outer):
             D3xx, Hx = derivatives.third_derivative_vec(
-                closure, list(self.params), x)
-            g = df + Hx + 1/2 * D3xx + self.L * x * x.norm().square()
+                closure, list(self.params), x_rolledup)
+            D3xx = D3xx.to(torch.double)
+            Hx = Hx.to(torch.double)
 
-            if self._check_stopping_condition(closure, self.params, x, g.norm()):
-                self._add_x(self.params, x)
+            Lx3 = x * (x.norm().square() * self.L)
+
+            g = df.add(Hx).add(D3xx, alpha=0.5).add(Lx3)
+
+            if self._check_stopping_condition(closure, self.params, x_rolledup, g.norm()):
+                self._add_x(self.params, x_rolledup)
                 return True
 
-            c = g.sub(Hx + self.L * x * x.norm().square(),
-                      alpha=(2 + math.sqrt(2))) / (2 + math.sqrt(2))
+            with torch.no_grad():
+                c = g.div(2. + math.sqrt(2)).sub(Hx).sub(Lx3)
+
             if self.subsolver is None:
-                x = exact(self.L, c.detach(), H)
+                x = exact(self.L, c.detach(), T, U)
             else:
                 x = iterative(self.params, closure, self.L, c.detach(),
                               self.subsolver, self.subsolver_args, self.max_iters)
+            
+            x_rolledup = tuple_to_vec.rollup_vector(x, list(self.params))
 
         self._add_x(self.params, x)
         return False
 
 
-def exact(L, c, A, tol=1e-10):
-    if c.dim() != 1:
-        raise ValueError(f"`c` must be a vector, but c = {c}")
-
-    if A.dim() > 2:
-        raise ValueError(f"`A` must be a matrix, but A = {A}")
-
-    if c.size()[0] != A.size()[0]:
-        raise ValueError("`c` and `A` mush have the same 1st dimension")
-
-    if (A.t() - A).max() > 0.1:
-        raise ValueError("`A` is not symmetric")
-
-    T, U = torch.linalg.eigh(A)
+def exact(L, c, T, U, tol=1e-10):
     ct = U.t().mv(c)
 
     def inv(T, L, tau): return (T + math.sqrt(2 * L) * tau).reciprocal()
-    def dual(tau): return 1/2 * tau.square() + 1 / \
-        2 * inv(T, L, tau).mul(ct.square()).sum()
+    def dual(tau): return 1/2 * tau.square() + 1/2 * inv(T, L, tau).mul(ct.square()).sum()
 
     tau_best = line_search.ray_line_search(
         dual, eps=tol,
@@ -113,8 +110,8 @@ def exact(L, c, A, tol=1e-10):
     invert = inv(T, L, tau_best)
     x = -U.mv(invert.mul(ct).type_as(U))
 
-    if not (c + L * x.norm()**2 * x + A.mv(x)).abs().max().item() < 0.01:
-        raise ValueError('obtained `x` is not optimal')
+    # if not (c + L * x.norm()**2 * x + A.mv(x)).abs().max().item() < 0.01:
+    #     raise ValueError('obtained `x` is not optimal')
 
     return x
 

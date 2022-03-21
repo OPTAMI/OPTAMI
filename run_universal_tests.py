@@ -49,7 +49,7 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     INPUT_DIM = 784
     OUTPUT_DIM = 2
 
-    TIME_LIMIT = 80
+    TIME_LIMIT = 100
     L = 4.0
     F_STAR_PLUS_EPSILON = 0.35
     F_REASONABLE = 0.45
