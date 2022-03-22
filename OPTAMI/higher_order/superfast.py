@@ -1,4 +1,3 @@
-from tabnanny import verbose
 import torch
 from torch.optim.optimizer import Optimizer
 from .bregman_distance_gradient_method import BDGM

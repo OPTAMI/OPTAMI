@@ -51,13 +51,13 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
 
     TIME_LIMIT = 100
     L = 4.0
-    F_STAR_PLUS_EPSILON = 0.35
-    F_REASONABLE = 0.45
+    F_STAR_PLUS_EPSILON = 0.15
+    F_REASONABLE = 0.25
 
     failed_counter = 0
 
     train_loader = DataLoader(dataset=MNIST(root='./data', train=True, transform=ToTensor(), download=True),
-                            batch_size=5000, shuffle=False)
+                            batch_size=100, shuffle=False)
 
     model = zero_all(LogisticRegression(INPUT_DIM, OUTPUT_DIM))
     optimizer = Algorithm(model.parameters(), L=L, verbose=False)
@@ -90,6 +90,7 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
             if toc - tic > TIME_LIMIT:
                 break
 
+    print(losses)
     if Algorithm.MONOTONE:
         print(f"test_monotonicity ({classname}) ... ", end="")
         if all(x >= y for x, y in zip(losses, losses[1:])):

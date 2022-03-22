@@ -8,7 +8,6 @@
   - [2. Supported algorithms](#2-supported-algorithms)
     - [2.1 First-order methods](#21-first-order-methods)
     - [2.2 Second-order methods](#22-second-order-methods)
-    - [2.3 Third-order methods](#23-third-order-methods)
   - [3. Citation](#3-citation)
   - [4. For contributors](#4-for-contributors)
     - [4.1 Criteria for contributed algorithms](#41-criteria-for-contributed-algorithms)
@@ -38,18 +37,13 @@ Altough the development of this library was motivated primarily by the need in i
 
    _Nesterov, Y., Polyak, B._ Cubic regularization of Newton method and its global performance. Math. Program. **108**, 177–205 (2006). https://doi.org/10.1007/s10107-006-0706-8
 
-### 2.3 Third-order methods
 * Superfast method
 
    _Nesterov, Y._ Superfast second-order methods for unconstrained convex optimization. Journal of Optimization Theory and Applications **191**, 1–30 (2021). https://doi.org/10.1007/s10957-021-01930-y
 
-<!-- Now there are 5 main methods:
-1. Hyperfast Second-Order Method (hyperfast.py)
-   https://www.researchgate.net/publication/339390966_Near-Optimal_Hyperfast_Second-Order_Method_for_convex_optimization_and_its_Sliding
-2. Superfast Second-Order Method (superfast.py)
-   https://dial.uclouvain.be/pr/boreal/object/boreal%3A227146/
-3. High-order BDGM (bdgm.py)
-   https://dial.uclouvain.be/pr/boreal/object/boreal%3A227146/-->
+* Hyperfast method
+
+   _Kamzolov D._ Near-optimal hyperfast second-order method for convex optimization. International Conference on Mathematical Optimization Theory and Operations Research, 167–178 (2020). https://doi.org/10.1007/978-3-030-58657-7_15
 
 ## 3. Citation
 
