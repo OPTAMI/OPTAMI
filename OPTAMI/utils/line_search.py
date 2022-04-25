@@ -11,7 +11,6 @@ def segment_line_search_fib(g, left_point, right_point, eps=1e-10):
     g1 = g(x1)
     g2 = g(x2)
     while diff > eps:
-        #print(left_point, x1, x2, right_point)
         if g1 > g2:
             left_point = x1
             x1 = x2
@@ -38,12 +37,10 @@ def segment_line_search_tri(g, left_point, right_point, eps=1e-10):
     while right_point.sub(left_point).ge(eps).item():
         if g(x1).sub(g(x2)).ge(0.).item():
             left_point = x1.clone()
-            x1 = right_point.add(left_point, alpha=2.).div_(3.)
-            x2 = left_point.add(right_point, alpha=2.).div_(3.)
         else:
             right_point = x2.clone()
-            x1 = right_point.add(left_point, alpha=2.).div_(3.)
-            x2 = left_point.add(right_point, alpha=2.).div_(3.)
+        x1 = right_point.add(left_point, alpha=2.).div_(3.)
+        x2 = left_point.add(right_point, alpha=2.).div_(3.)
     return right_point.add(left_point).div(2.)
 
 
@@ -57,5 +54,4 @@ def ray_line_search(g, middle_point, left_point, eps=1e-10):
             left_point = middle_point.clone()
             middle_point = right_point.clone()
             right_point = middle_point.mul(2.)
-            #print(left_point, right_point)
     return segment_line_search_tri(g, left_point, right_point, eps)
