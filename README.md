@@ -8,6 +8,8 @@
   - [2. Supported algorithms](#2-supported-algorithms)
     - [2.1 First-order methods](#21-first-order-methods)
     - [2.2 Second-order methods](#22-second-order-methods)
+    - [2.3 Third-order methods](#23-third-order-methods)
+    - [2.4 Accelerated envelopes](#24-accelerated-envelopes)
   - [3. Citation](#3-citation)
   - [4. For contributors](#4-for-contributors)
     - [4.1 Criteria for contributed algorithms](#41-criteria-for-contributed-algorithms)
@@ -28,15 +30,23 @@ This package is dedicated to high-order optimization methods. All the methods ca
 Altough the development of this library was motivated primarily by the need in implementations of high-order optimization methods, we call contributors to commit methods of any order, and also already provide some of first-order methods in this library. Below we list all the currently supported algorithms divided into categories by their order, with the links on their source papers and/or their wiki pages.
 
 ### 2.1 First-order methods
-* Similar Triangles method (full-gradient accelerated \[adaptive\] gradient method)
+* Similar Triangles method
 
    _Gasnikov, A.V., Nesterov, Y.E._ Universal Method for Stochastic Composite Optimization Problems. Comput. Math. and Math. Phys. **58**, 48–64 (2018). https://doi.org/10.1134/S0965542518010050
 
 ### 2.2 Second-order methods
+* Damped Newton method
+
 * Cubic regularized Newton method
 
    _Nesterov, Y., Polyak, B._ Cubic regularization of Newton method and its global performance. Math. Program. **108**, 177–205 (2006). https://doi.org/10.1007/s10107-006-0706-8
 
+### 2.3 Third-order methods
+* Basic tensor method (Bregman distance gradient method for p = 3)
+
+   _Nesterov, Y._ Superfast second-order methods for unconstrained convex optimization. Journal of Optimization Theory and Applications **191**, 1–30 (2021). https://doi.org/10.1007/s10957-021-01930-y
+
+### 2.4 Accelerated envelopes
 * Superfast method
 
    _Nesterov, Y._ Superfast second-order methods for unconstrained convex optimization. Journal of Optimization Theory and Applications **191**, 1–30 (2021). https://doi.org/10.1007/s10957-021-01930-y
@@ -55,7 +65,7 @@ TBA
 2. The paper introducing algorithm and the list of contributors are presented in docstring for `Algorithm`
 3. The only required argument for constructor `Algorithm::__init__` is `params`
 4. `Algorithm` does not takes the `model` itself in any way, only its `model.parameters()` as a `param` argument of constructor. As well as `Algorithm` does not take any information about loss, problem or other entities from outside. In other words, algorithms can use only zero-, first-, second- etc. oracle information provided by `closure` function, described below, or by the content of `grad` field of parameter `p`
-5. All the necessary constants (from Lipschitz condition, Hölder condition etc.) are the arguments of `Algorithm::__init__`, are provided with reasonable default value (working for the _Basic tests_) and have corresponding check raising `ValueError` if value is incorrect
+5. All the necessary constants (from Lipschitz, Hölder, or Polyak–Łojasiewicz etc. condition) are the arguments of `Algorithm::__init__`, are provided with reasonable default value (working for the _Basic tests_) and have corresponding check raising `ValueError` if value is incorrect
 6. Constructor `Algorithm::__init__` takes non-required boolean argument `verbose` controlling all the printing in stdout may be produced by `Algorithm`
 7. Overridden method `Algorithm::step` takes one required parameter `closure`, that is the function evaluating loss (with a proper PyTorch forwarding) and that takes non-required boolean argument `backward` (if it is True, `closure` automatically performs backpropagation)
 8. For every `group` in `self.param_groups`, commonly used variables (like constants approximations, counters etc.) are stored in `self.state[group['params'][0]]`
@@ -86,7 +96,7 @@ Unit tests are implemented using the python `unittest` library, and are provided
 Universal tests check the expected behaviour and minimal performance requiremences for the algorithms on some toy problems. The main goal of these tests is to check the guarantees provided by the methods and eliminate the divergence of the algorithms. The universal tests are not available on edit for the side contributor, but can be complicated by authors in order to provide some more strong guarantees (for example, by checking the convergence rate on the problems with the known solution). In these cases, some algorithms that did not passed the enhanced tests may be deleted from _main_ branch until the correction (so we recommend to use only release versions of out library as a dependency in your project). All the universal tests presented in library can be launched manually with a command `./run_universal_tests.py`.
 
 Now, the list of the used toy problems is as follows:
-* MNIST dataset (n = 784, m = 60000), classification into even/odd numbers with simple logistic regression model.
+* MNIST dataset (n = 784, m = 5000), classification into even/odd numbers with simple logistic regression model.
 
 ### 5.3 Performance tests
 

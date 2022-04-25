@@ -1,8 +1,9 @@
 import math
 import torch
+import warnings
 from OPTAMI.utils import tuple_to_vec
 from torch.optim.optimizer import Optimizer
-from .bregman_distance_gradient_method import BDGM
+from .basic_tensor_method import BasicTensorMethod
 
 
 class Hyperfast(Optimizer):
@@ -22,14 +23,23 @@ class Hyperfast(Optimizer):
     MONOTONE = True
 
     def __init__(self, params, L: float = 1e+3, order: int = 3,
+                 TensorStepMethod: Optimizer = None, 
                  subsolver: Optimizer = None, subsolver_args: dict = None,
-                 max_iters_ls: int = 50, max_iters: int = None, verbose: bool = True):
+                 max_iters_ls: int = 50, max_iters: int = None, 
+                 verbose: bool = True, tensor_step_kwargs: dict = None):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
         super().__init__(params, dict(
-            L=L, order=order, fac=math.factorial(order-1), subsolver=subsolver, max_iters_ls=max_iters_ls,
-            max_iters=max_iters, subsolver_args=subsolver_args))
+            L=L, order=order, fac=math.factorial(order-1), max_iters_ls=max_iters_ls))
+
+        self.tensor_step_method = None
+        self.TensorStepMethod = TensorStepMethod
+        self.subsolver = subsolver
+        self.subsolver_args = subsolver_args
+        self.max_iters = max_iters
+        self.tensor_step_kwargs = tensor_step_kwargs
+
         self.verbose = verbose
 
 
@@ -41,7 +51,8 @@ class Hyperfast(Optimizer):
         closure = torch.enable_grad()(closure)
 
         for group in self.param_groups:
-            p = next(p for p in group['params'])
+            params = group['params']
+            p = next(iter(params))
             state_common = self.state[p]
 
             if 'theta' not in state_common:
@@ -53,10 +64,17 @@ class Hyperfast(Optimizer):
             A = state_common['A']
             order = group['order']
             theta = state_common['theta']
-            max_iters = group['max_iters']
-            subsolver = group['subsolver']
             max_iters_ls = group['max_iters_ls']
-            subsolver_args = group['subsolver_args']
+
+            if self.tensor_step_method is None:
+                if self.TensorStepMethod is None:
+                    self.tensor_step_method = BasicTensorMethod(
+                        params, L=L, subsolver=self.subsolver, verbose=self.verbose, 
+                        subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                else:
+                    if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
+                        warnings.warn("`TensorStepMethod` should be monotone!")
+                    self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
 
             for p in group['params']:
                 state = self.state[p]
@@ -80,10 +98,8 @@ class Hyperfast(Optimizer):
                         p.zero_().add_(state['y'], alpha=theta).add_(state['x'], alpha=1-theta)
                         state['x_wave'] = p.detach().clone()
 
-                BDGM(
-                    group['params'], L=L, subsolver=subsolver, verbose=self.verbose, 
-                    subsolver_args=subsolver_args, max_iters=max_iters
-                ).solve(closure)
+                self.tensor_step_method.step(closure)
+                self.zero_grad()
                 
                 norm = 0.
                 with torch.no_grad():
