@@ -4,7 +4,7 @@ from torch.optim.optimizer import Optimizer
 from OPTAMI.utils import tuple_to_vec, derivatives, line_search
 
 
-class BDGM:
+class BasicTensorMethod(Optimizer):
     """Implements Bregman Distance Gradient Method for 4th degree Taylor polynomial.
     It had been proposed in `Superfast Second-Order Methods for Unconstrained Convex Optimization` 
     https://link.springer.com/article/10.1007/s10957-021-01930-y and listed in
@@ -20,17 +20,16 @@ class BDGM:
         subsolver (torch.opt): optimizer for solving
         subsolver_args (dict) : arguments for `subsolver`
     """
+    MONOTONE = True
 
-    def __init__(self, params, L: float = 1e+2, subsolver: Optimizer = None,
+    def __init__(self, params, L: float = 1e+2, subsolver: Optimizer = None, max_iters_outer: int = 50,
                  subsolver_args: dict = None, max_iters: int = None, verbose: bool = True):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
-
-        self.L = L
-        self.params = params
-        self.max_iters = max_iters
-        self.subsolver = subsolver
-        self.subsolver_args = subsolver_args
+    
+        super().__init__(params, dict(
+            L=L, subsolver=subsolver, max_iters_outer=max_iters_outer,
+            subsolver_args=subsolver_args or {'lr': 1e-2}, max_iters=max_iters))
         self.verbose = verbose
 
     def _add_x(self, params, x_rolledup, alpha=1):
@@ -44,54 +43,59 @@ class BDGM:
             torch.autograd.grad(closure(), list(params))).norm()
         self._add_x(params, x_rolledup, alpha=-1)
 
-        # if self.verbose:
-        #     rhs = 1/6 * df_norm
-        #     print(f"g_norm = {g_norm}, df_norm / 6 = {rhs}")
-
         return g_norm <= 1/6 * df_norm
 
-    def solve(self, closure, max_iters_outer: int = 50):
+    def step(self, closure):
         """Solves a subproblem.
         Arguments:
             closure (callable): a closure that reevaluates the model and returns the loss.
         """
         closure = torch.enable_grad()(closure)
 
-        df = tuple_to_vec.tuple_to_vector(
-            torch.autograd.grad(closure(), list(self.params), create_graph=True))
-        x = torch.zeros_like(df)
-        x_rolledup = tuple_to_vec.rollup_vector(x, list(self.params))
+        for group in self.param_groups:
+            params = group['params']
 
-        if self.subsolver is None:
-            H = derivatives.flat_hessian(df, self.params).to(torch.double)
-            T, U = torch.linalg.eigh(H)
+            L = group['L']
+            subsolver = group['subsolver']
+            max_iters = group['max_iters']
+            subsolver_args = group['subsolver_args']
+            max_iters_outer = group['max_iters_outer']
 
-        for _ in range(max_iters_outer):
-            D3xx, Hx = derivatives.third_derivative_vec(
-                closure, list(self.params), x_rolledup)
-            D3xx = D3xx.to(torch.double)
-            Hx = Hx.to(torch.double)
+            df = tuple_to_vec.tuple_to_vector(
+                torch.autograd.grad(closure(), list(params), create_graph=True))
+            x = torch.zeros_like(df)
+            x_rolledup = tuple_to_vec.rollup_vector(x, list(params))
 
-            Lx3 = x * (x.norm().square() * self.L)
+            if subsolver is None:
+                H = derivatives.flat_hessian(df, params).to(torch.double)
+                T, U = torch.linalg.eigh(H)
 
-            g = df.add(Hx).add(D3xx, alpha=0.5).add(Lx3)
+            for _ in range(max_iters_outer):
+                D3xx, Hx = derivatives.third_derivative_vec(
+                    closure, list(params), x_rolledup)
+                D3xx = D3xx.to(torch.double)
+                Hx = Hx.to(torch.double)
 
-            if self._check_stopping_condition(closure, self.params, x_rolledup, g.norm()):
-                self._add_x(self.params, x_rolledup)
-                return True
+                Lx3 = x * (x.norm().square() * L)
 
-            with torch.no_grad():
-                c = g.div(2. + math.sqrt(2)).sub(Hx).sub(Lx3)
+                g = df.add(Hx).add(D3xx, alpha=0.5).add(Lx3)
 
-            if self.subsolver is None:
-                x = exact(self.L, c.detach(), T, U)
-            else:
-                x = iterative(self.params, closure, self.L, c.detach(),
-                              self.subsolver, self.subsolver_args, self.max_iters)
-            
-            x_rolledup = tuple_to_vec.rollup_vector(x, list(self.params))
+                if self._check_stopping_condition(closure, params, x_rolledup, g.norm()):
+                    self._add_x(params, x_rolledup)
+                    return True
 
-        self._add_x(self.params, x)
+                with torch.no_grad():
+                    c = g.div(2. + math.sqrt(2)).sub(Hx).sub(Lx3)
+
+                if subsolver is None:
+                    x = exact(L, c.detach(), T, U)
+                else:
+                    x = iterative(params, closure, L, c.detach(),
+                                  subsolver, subsolver_args, max_iters)
+                
+                x_rolledup = tuple_to_vec.rollup_vector(x, list(params))
+
+            self._add_x(params, x)
         return False
 
 
@@ -108,9 +112,6 @@ def exact(L, c, T, U, tol=1e-10):
 
     invert = inv(T, L, tau_best)
     x = -U.mv(invert.mul(ct).type_as(U))
-
-    # if not (c + L * x.norm()**2 * x + A.mv(x)).abs().max().item() < 0.01:
-    #     raise ValueError('obtained `x` is not optimal')
 
     return x
 
