@@ -98,7 +98,7 @@ class SimilarTriangles(Optimizer):
                     alpha = state['alpha']
 
                     u.sub_(p.grad, alpha=a)
-                    p.set_(x, alpha=alpha).add_(u, alpha=1 - alpha)
+                    p.set_(x.mul(alpha)).add_(u, alpha=1 - alpha)
 
                     state['u'] = u
 
