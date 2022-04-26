@@ -81,7 +81,7 @@ class Hyperfast(Optimizer):
 
                 if ('x' not in state) or ('y' not in state):
                     state['x'] = p.detach().clone()
-                    state['y'] = p.detach().clone()
+                    state['y'] = state['x'].clone()
 
             A_new = A
             s = order/(order+1)
@@ -95,7 +95,7 @@ class Hyperfast(Optimizer):
                 for p in group['params']:
                     state = self.state[p]
                     with torch.no_grad():
-                        p.zero_().add_(state['y'], alpha=theta).add_(state['x'], alpha=1-theta)
+                        p.set_(state['y'], alpha=theta).add_(state['x'], alpha=1-theta)
                         state['x_wave'] = p.detach().clone()
 
                 self.tensor_step_method.step(closure)
@@ -132,7 +132,7 @@ class Hyperfast(Optimizer):
                     state = self.state[p]
                     state['y'] = p.detach().clone()
 
-            closure(backward=True)
+            closure().backward()
 
             with torch.no_grad():
                 for p in group['params']:

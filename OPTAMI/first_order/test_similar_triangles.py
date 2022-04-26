@@ -80,11 +80,9 @@ class TestSimilarTriangles(unittest.TestCase):
 
         self.assertEqual(self.optimizer._check_relaxation.call_count, 8)
 
-    def closure(self, backward=False):
+    def closure(self):
         loss = self.criterion(self.model(self.x), self.y)
         self.optimizer.zero_grad()
-        if backward:
-            loss.backward()
         return loss
 
     def counting_closure(self, backward=False):

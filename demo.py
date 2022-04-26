@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor, Compose
 from torchvision.datasets import MNIST
-from torch.autograd import Variable
 import OPTAMI
 import torch
 import time
@@ -29,16 +28,13 @@ def train(model, optimizer, dataloader, epochs=10, verbose=True, return_grads=Fa
             if i != 0:
                 continue
 
-            def closure(backward=False):
-                prediction = model(image)
-                loss = model.criterion(prediction, label)
+            def closure():
                 optimizer.zero_grad()
-                if backward:
-                    loss.backward()
-                return loss
+                prediction = model(image)
+                return model.criterion(prediction, label)
 
-            image = Variable(images.view(-1, 28 ** 2))
-            label = Variable(labels).fmod(2)
+            image = images.view(-1, 28 ** 2)
+            label = labels.fmod(2)
 
             loss = model.pure_loss(model(image), label)
             losses.append(loss.item())
@@ -84,8 +80,7 @@ class LogisticRegression(torch.nn.Module):
 
     def pure_loss(self, hypothesis, reference):
         criterion = torch.nn.CrossEntropyLoss()
-        loss = criterion(hypothesis, reference)
-        return loss
+        return criterion(hypothesis, reference)
 
 
 BATCH_SIZE = 5000

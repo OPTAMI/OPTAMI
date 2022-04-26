@@ -3,7 +3,6 @@
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 from torchvision.datasets import MNIST
-from torch.autograd import Variable
 import OPTAMI
 import torch
 import time
@@ -28,8 +27,7 @@ class LogisticRegression(torch.nn.Module):
         self.linear = torch.nn.Linear(input_dim, output_dim)
 
     def forward(self, x):
-        outputs = self.linear(x)
-        return outputs
+        return self.linear(x)
 
     def criterion(self, hypothesis, reference):
         criterion = torch.nn.CrossEntropyLoss()
@@ -70,16 +68,13 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
             if i != 0:
                 continue
 
-            def closure(backward=False):
-                prediction = model(image)
-                loss = model.criterion(prediction, label)
-                optimizer.zero_grad()
-                if backward:
-                    loss.backward()
-                return loss
+            image = images.view(-1, 28 ** 2)
+            label = labels.fmod(2)
 
-            image = Variable(images.view(-1, 28 ** 2))
-            label = Variable(labels).fmod(2)
+            def closure():
+                optimizer.zero_grad()
+                prediction = model(image)
+                return model.criterion(prediction, label)
 
             loss = closure().item()
             losses.append(loss)

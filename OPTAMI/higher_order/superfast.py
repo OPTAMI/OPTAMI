@@ -19,12 +19,12 @@ class Superfast(Optimizer):
         divider (float): constant controlling the step size; lower constant is a bigger step (default: 604.8, by theory)
         subsolver (Optimizer): method to solve the inner problem (default: BDGM)
     """
-    MONOTONE = True
+    MONOTONE = False
 
     def __init__(self, params, L: float = 1e+3, divider: float = 604.8, 
-                 TensorStepMethod: Optimizer = None,
+                 TensorStepMethod: Optimizer = None, tensor_step_kwargs: dict = None,
                  subsolver: Optimizer = None, subsolver_args: dict = None,
-                 max_iters: int = None, verbose: bool = True, tensor_step_kwargs: dict = None):
+                 max_iters: int = None, verbose: bool = True):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
@@ -74,9 +74,9 @@ class Superfast(Optimizer):
                 state = self.state[p]
 
                 if ('v' not in state) or ('x' not in state):
-                    state['v'] = p.clone()
-                    state['x'] = p.clone()
                     state['x0'] = p.detach().clone()
+                    state['x'] = state['x0'].clone()
+                    state['v'] = state['x0'].clone()
                     state['df_sum'] = torch.zeros_like(p)
 
                 with torch.no_grad():
@@ -86,31 +86,26 @@ class Superfast(Optimizer):
             self.tensor_step_method.step(closure)
             self.zero_grad()
 
-            for p in group['params']:
-                state = self.state[p]
-                with torch.no_grad():
-                    state['x'].zero_().add_(p)
-
-            closure(backward=True)
-            a = (2*k+1.) * (2*k*(k+1)+1) / (divider*L)
+            closure().backward()
+            a = (2 * k + 1.) * (2 * k * (k + 1) + 1) / (divider * L)
 
             for p in group['params']:
                 state = self.state[p]
                 with torch.no_grad():
+                    state['x'].set_(p)
                     state['df_sum'].add_(p.grad, alpha=a)
 
-            norm = 0
+            norm = 0.
             for p in group['params']:
                 state = self.state[p]
                 with torch.no_grad():
                     norm += tuple_to_vec.tuple_norm_square(state['df_sum'])
-            norm = norm.pow(1./3)
+            norm = norm ** (1./3)
 
             for p in group['params']:
                 state = self.state[p]
                 with torch.no_grad():
-                    x0 = state['x0']
-                    state['v'].zero_().add_(x0).sub_(state['df_sum'], alpha=1/norm)
+                    state['v'].set_(state['x0']).sub_(state['df_sum'], alpha=1/norm)
 
             state_common['k'] += 1
 

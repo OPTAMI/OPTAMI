@@ -43,8 +43,6 @@ class CubicRegularizedNewton(Optimizer):
 
         for group in self.param_groups:
             params = group['params']
-            p = next(p for p in params)
-
             L = group['L']
             rel_acc = group['rel_acc']
             max_iters = group['max_iters']

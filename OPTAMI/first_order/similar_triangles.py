@@ -18,7 +18,7 @@ class SimilarTriangles(Optimizer):
         zeta (float): coefficient to multiply/divide L on with the aim of adaptation (default: 2.)
         verbose (bool): flag to control additional logs, here - on adaptation of L (default: True)
     """
-    MONOTONE=True
+    MONOTONE = False
 
     def __init__(self, params, L: float = 1e+2, is_adaptive: bool = True,
                  max_adapt_iters: int = 10, zeta: float = 2., verbose: bool = True):
@@ -40,7 +40,7 @@ class SimilarTriangles(Optimizer):
             dfy = state['dfy']
 
             gap += dfy.mul(y.sub(p)).sum().item()
-            gap -= L/2 * y.sub(p).norm().item() ** 2
+            gap -= L / 2 * y.sub(p).norm().item() ** 2
 
         return gap
 
@@ -53,7 +53,7 @@ class SimilarTriangles(Optimizer):
         closure = torch.enable_grad()(closure)
 
         for group in self.param_groups:
-            p = next(p for p in group['params'])
+            p = next(iter(group['params']))
             state_common = self.state[p]
 
             if ('A' not in state_common) or ('L' not in state_common):
@@ -68,24 +68,23 @@ class SimilarTriangles(Optimizer):
 
             for p in group['params']:
                 state = self.state[p]
-                state['x'] = p.clone()
+                state['x'] = p.detach().clone()
 
             for _ in range(max_adapt_iters):
+                a = math.sqrt(1. / (4 * L ** 2) + A / L) + 1. / (2 * L)
+                alpha = A / (A + a)
                 for p in group['params']:
                     state = self.state[p]
 
                     if 'u' not in state:
-                        state['u'] = p.clone()
-
+                        state['u'] = p.detach().clone()
                     u = state['u']
-                    a = math.sqrt(1./(4*L**2) + A/L) + 1./(2*L)
-                    alpha = A / (A + a)
                     state['alpha'] = alpha
 
-                    p.mul_(alpha).add_(u, alpha=1-alpha)
+                    p.mul_(alpha).add_(u, alpha=1 - alpha)
                     state['y'] = p.clone().detach()
-
-                fy = closure(backward=True).item()
+                with torch.enable_grad():
+                    fy = closure().backward().item()
                 for p in group['params']:
                     state = self.state[p]
                     state['dfy'] = p.grad.clone()
@@ -97,7 +96,7 @@ class SimilarTriangles(Optimizer):
                     alpha = state['alpha']
 
                     u.sub_(p.grad, alpha=a)
-                    p.zero_().add_(x, alpha=alpha).add_(u, alpha=1-alpha)
+                    p.set_(x, alpha=alpha).add_(u, alpha=1 - alpha)
 
                     state['u'] = u
 
@@ -115,7 +114,7 @@ class SimilarTriangles(Optimizer):
                     for p in group['params']:
                         state = self.state[p]
                         x = state['x']
-                        p.zero_().add_(x)
+                        p.set_(x)
 
             state_common['A'] = A + a
             state_common['L'] = L
