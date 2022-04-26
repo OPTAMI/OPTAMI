@@ -26,7 +26,6 @@ class TestSimilarTriangles(unittest.TestCase):
             mock.assert_called()
 
     def test_not_adaptive_oracle_calls(self):
-        self.first_order_calls = 0
         self.zero_order_calls = 0
 
         self.optimizer = SimilarTriangles(
@@ -34,25 +33,17 @@ class TestSimilarTriangles(unittest.TestCase):
         self.counting_closure()
         self.optimizer.step(self.counting_closure)
 
-        self.assertEqual(self.first_order_calls, 1)
         self.assertEqual(self.zero_order_calls, 1)
 
-        self.first_order_calls = 0
         self.zero_order_calls = 0
 
     def test_adaptive_oracle_calls(self):
-        self.first_order_calls = 0
         self.zero_order_calls = 0
-
         self.optimizer = SimilarTriangles(
             self.model.parameters(), is_adaptive=True, verbose=False)
         self.counting_closure()
         self.optimizer.step(self.counting_closure)
-
-        self.assertEqual(self.first_order_calls, 1)
         self.assertEqual(self.zero_order_calls, 2)
-
-        self.first_order_calls = 0
         self.zero_order_calls = 0
     
     def test_adaptive_iters(self):
@@ -85,16 +76,12 @@ class TestSimilarTriangles(unittest.TestCase):
         self.optimizer.zero_grad()
         return loss
 
-    def counting_closure(self, backward=False):
-        global zero_order_calls, first_order_calls
+    def counting_closure(self):
+        global zero_order_calls
 
         loss = self.criterion(self.model(self.x), self.y)
         self.optimizer.zero_grad()
-        if backward:
-            loss.backward()
-            self.first_order_calls += 1
-        else:
-            self.zero_order_calls += 1
+        self.zero_order_calls += 1
 
         return loss
 
