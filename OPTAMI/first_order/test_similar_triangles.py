@@ -33,7 +33,7 @@ class TestSimilarTriangles(unittest.TestCase):
         self.counting_closure()
         self.optimizer.step(self.counting_closure)
 
-        self.assertEqual(self.zero_order_calls, 1)
+        self.assertEqual(self.zero_order_calls, 2)
 
         self.zero_order_calls = 0
 
@@ -43,7 +43,7 @@ class TestSimilarTriangles(unittest.TestCase):
             self.model.parameters(), is_adaptive=True, verbose=False)
         self.counting_closure()
         self.optimizer.step(self.counting_closure)
-        self.assertEqual(self.zero_order_calls, 2)
+        self.assertEqual(self.zero_order_calls, 3)
         self.zero_order_calls = 0
     
     def test_adaptive_iters(self):
