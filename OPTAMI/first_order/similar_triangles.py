@@ -84,7 +84,9 @@ class SimilarTriangles(Optimizer):
                     p.mul_(alpha).add_(u, alpha=1 - alpha)
                     state['y'] = p.clone().detach()
                 with torch.enable_grad():
-                    fy = closure().backward().item()
+                    fy = closure()
+                    fy.backward()
+                fy = fy.item()
                 for p in group['params']:
                     state = self.state[p]
                     state['dfy'] = p.grad.clone()
