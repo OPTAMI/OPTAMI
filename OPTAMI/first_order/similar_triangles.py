@@ -53,7 +53,7 @@ class SimilarTriangles(Optimizer):
         closure = torch.enable_grad()(closure)
 
         for group in self.param_groups:
-            p = next(p for p in group['params'])
+            p = next(iter(group['params']))
             state_common = self.state[p]
 
             if ('A' not in state_common) or ('L' not in state_common):
@@ -100,7 +100,7 @@ class SimilarTriangles(Optimizer):
                     alpha = state['alpha']
 
                     u.sub_(p.grad, alpha=a)
-                    p.zero_().add_(x, alpha=alpha).add_(u, alpha=1-alpha)
+                    p.set_(x).mul_(alpha).add_(u, alpha=1-alpha)
 
                     state['u'] = u
 
@@ -118,7 +118,7 @@ class SimilarTriangles(Optimizer):
                     for p in group['params']:
                         state = self.state[p]
                         x = state['x']
-                        p.zero_().add_(x)
+                        p.set_(x)
 
             state_common['A'] = A + a
             state_common['L'] = L
