@@ -117,7 +117,7 @@ class Hyperfast(Optimizer):
                 for p in group['params']:
                     state = self.state[p]
                     with torch.no_grad():
-                        p.zero().add_(state['y'], alpha=theta).add_(state['x'], alpha=1-theta)
+                        p.zero_().add_(state['y'], alpha=theta).add_(state['x'], alpha=1-theta)
                         state['x_wave'] = p.detach().clone()
 
                 self.tensor_step_method.step(closure)
