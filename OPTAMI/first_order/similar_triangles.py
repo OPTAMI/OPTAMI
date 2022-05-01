@@ -100,7 +100,7 @@ class SimilarTriangles(Optimizer):
                     alpha = state['alpha']
 
                     u.sub_(p.grad, alpha=a)
-                    p.set_(x).mul_(alpha).add_(u, alpha=1-alpha)
+                    p.zero_().add_(x,alpha = alpha).add_(u, alpha=1-alpha)
 
                     state['u'] = u
 
@@ -118,7 +118,7 @@ class SimilarTriangles(Optimizer):
                     for p in group['params']:
                         state = self.state[p]
                         x = state['x']
-                        p.set_(x)
+                        p.zero_().add_(x)
 
             state_common['A'] = A + a
             state_common['L'] = L

@@ -55,21 +55,7 @@ class Hyperfast(Optimizer):
         self.tensor_step_kwargs = tensor_step_kwargs
         self.verbose = verbose
 
-        if self.TensorStepMethod is None:
-            if order == 3:
-                self.tensor_step_method = OPTAMI.BasicTensorMethod(
-                    params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                    subsolver_args=self.subsolver_args, max_iters=self.max_iters)
-            elif order == 2:
-                self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
-                    params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                    subsolver_args=self.subsolver_args, max_iters=self.max_iters)
-            else:  # order = 1
-                self.tensor_step_method = torch.optim.SGD(params, lr=1. / L)
-        else:
-            if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
-                warnings.warn("`TensorStepMethod` should be monotone!")
-            self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
+
 
 
     def step(self, closure):
@@ -95,6 +81,22 @@ class Hyperfast(Optimizer):
             max_iters_ls = group['max_iters_ls']
             fac = math.factorial(order - 1)
 
+            if self.tensor_step_method is None:
+                if self.TensorStepMethod is None:
+                    if order == 3:
+                        self.tensor_step_method = OPTAMI.BasicTensorMethod(
+                            params, L=L, subsolver=self.subsolver, verbose=self.verbose,
+                            subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                    elif order == 2:
+                        self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
+                            params, L=L, subsolver=self.subsolver, verbose=self.verbose,
+                            subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                    else:  # order = 1
+                        self.tensor_step_method = torch.optim.SGD(params, lr=1. / L)
+                else:
+                    if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
+                        warnings.warn("`TensorStepMethod` should be monotone!")
+                    self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
 
             for p in group['params']:
                 state = self.state[p]
@@ -115,7 +117,7 @@ class Hyperfast(Optimizer):
                 for p in group['params']:
                     state = self.state[p]
                     with torch.no_grad():
-                        p.set_(state['y']).mul_(theta).add_(state['x'], alpha=1-theta)
+                        p.zero().add_(state['y'], alpha=theta).add_(state['x'], alpha=1-theta)
                         state['x_wave'] = p.detach().clone()
 
                 self.tensor_step_method.step(closure)
