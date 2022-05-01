@@ -1,18 +1,22 @@
+import math
+
 import torch
 import warnings
 from torch.optim.optimizer import Optimizer
-from .basic_tensor_method import BasicTensorMethod
+import OPTAMI
 from OPTAMI.utils import tuple_to_vec
 
 
 class Superfast(Optimizer):
-    """Implements Superfast Second-Order Method.
+    """Implements Inexact Accelerated Tensor Method.
+    Exact version was proposed by Yu.Nesterov in "Implementable tensor methods in unconstrained convex optimization"
+    https://doi.org/10.1007/s10107-019-01449-1
+    Detailed inexact version was proposed be Yu.Nesterov in "Superfast Second-Order Methods for Unconstrained Convex Optimization"
+    https://doi.org/10.1007/s10957-021-01930-y
 
-    It had been proposed in `Superfast second-order methods for unconstrained convex optimization`
-    https://dial.uclouvain.be/pr/boreal/object/boreal%3A227146/
     Contributors:
         Dmitry Kamzolov
-        T. Golubeva
+        Dmitry Vilensky-Pasechnyuk
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         L (float): estimated value of Lipschitz constant for the hessian (default: 1e+3)
@@ -21,7 +25,8 @@ class Superfast(Optimizer):
     """
     MONOTONE = False
 
-    def __init__(self, params, L: float = 1e+3, divider: float = 604.8, 
+
+    def __init__(self, params, L: float = 1e+3, divider: float = 604.8,
                  TensorStepMethod: Optimizer = None, tensor_step_kwargs: dict = None,
                  subsolver: Optimizer = None, subsolver_args: dict = None,
                  max_iters: int = None, verbose: bool = True):
@@ -60,8 +65,8 @@ class Superfast(Optimizer):
 
             if self.tensor_step_method is None:
                 if self.TensorStepMethod is None:
-                    self.tensor_step_method = BasicTensorMethod(
-                        params, L=L, subsolver=self.subsolver, verbose=self.verbose, 
+                    self.tensor_step_method = OPTAMI.BasicTensorMethod(
+                        params, L=L, subsolver=self.subsolver, verbose=self.verbose,
                         subsolver_args=self.subsolver_args, max_iters=self.max_iters)
                 else:
                     if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
@@ -110,3 +115,5 @@ class Superfast(Optimizer):
             state_common['k'] += 1
 
         return None
+
+

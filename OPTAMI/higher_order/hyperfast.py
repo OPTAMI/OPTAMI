@@ -1,26 +1,40 @@
 import math
 import torch
 import warnings
+
+import OPTAMI
 from OPTAMI.utils import tuple_to_vec
 from torch.optim.optimizer import Optimizer
-from .basic_tensor_method import BasicTensorMethod
 
 
 class Hyperfast(Optimizer):
-    """Implements Hyperfast Second-Order Method.
+    """Implements Inexact Near-optimal Accelerated Tensor Method.
 
-    It had been proposed in `Near-optimal hyperfast second-order method for convex optimization`
-    https://link.springer.com/chapter/10.1007/978-3-030-58657-7_15
+    Exact version was proposed by Bubeck, S., Jiang, Q., Lee, Y.T., Li, Y. and Sidford, A., 2019, June.
+    "Near-optimal method for highly smooth convex optimization." In Conference on Learning Theory (pp. 492-507). PMLR.
+    https://proceedings.mlr.press/v99/bubeck19a.html
+    and
+    Gasnikov, A., Dvurechensky, P., Gorbunov, E., Vorontsova, E., Selikhanovych, D., Uribe, C.A.,
+    Jiang, B., Wang, H., Zhang, S., Bubeck, S. and Jiang, Q., 2019, June.
+    "Near optimal methods for minimizing convex functions with lipschitz $ p $-th derivatives."
+    In Conference on Learning Theory (pp. 1392-1393). PMLR.
+    https://proceedings.mlr.press/v99/gasnikov19b.html
+
+    Inexact version was proposed by Kamzolov D., 2020, July.
+    "Near-optimal hyperfast second-order method for convex optimization."
+    In International Conference on Mathematical Optimization Theory and Operations Research (pp. 167-178). Springer, Cham.
+    https://doi.org/10.1007/978-3-030-58657-7_15
+
     Contributors:
         Dmitry Kamzolov
-        T. Golubeva
+        Dmitry Vilensky-Pasechnyuk
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         L (float): estimated value of Lipschitz constant for the hessian (default: 1e+3)
-        divider (float): constant controlling the step size; lower constant is a bigger step (default: 604.8, by theory)
+        order (int): order of the method (order = 1,2,3)
         subsolver (Optimizer): method to solve the inner problem
     """
-    MONOTONE = True
+    MONOTONE = False
 
     def __init__(self, params, L: float = 1e+3, order: int = 3,
                  TensorStepMethod: Optimizer = None, 
@@ -31,7 +45,7 @@ class Hyperfast(Optimizer):
             raise ValueError(f"Invalid learning rate: L = {L}")
 
         super().__init__(params, dict(
-            L=L, order=order, fac=math.factorial(order-1), max_iters_ls=max_iters_ls))
+            L=L, order=order, max_iters_ls=max_iters_ls))
 
         self.tensor_step_method = None
         self.TensorStepMethod = TensorStepMethod
@@ -39,8 +53,23 @@ class Hyperfast(Optimizer):
         self.subsolver_args = subsolver_args
         self.max_iters = max_iters
         self.tensor_step_kwargs = tensor_step_kwargs
-
         self.verbose = verbose
+
+        if self.TensorStepMethod is None:
+            if order == 3:
+                self.tensor_step_method = OPTAMI.BasicTensorMethod(
+                    params, L=L, subsolver=self.subsolver, verbose=self.verbose,
+                    subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+            elif order == 2:
+                self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
+                    params, L=L, subsolver=self.subsolver, verbose=self.verbose,
+                    subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+            else:  # order = 1
+                self.tensor_step_method = torch.optim.SGD(params, lr=1. / L)
+        else:
+            if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
+                warnings.warn("`TensorStepMethod` should be monotone!")
+            self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
 
 
     def step(self, closure):
@@ -60,21 +89,12 @@ class Hyperfast(Optimizer):
                 state_common['A'] = 0.
             
             L = group['L']
-            fac = group['fac']
             A = state_common['A']
             order = group['order']
             theta = state_common['theta']
             max_iters_ls = group['max_iters_ls']
+            fac = math.factorial(order - 1)
 
-            if self.tensor_step_method is None:
-                if self.TensorStepMethod is None:
-                    self.tensor_step_method = BasicTensorMethod(
-                        params, L=L, subsolver=self.subsolver, verbose=self.verbose, 
-                        subsolver_args=self.subsolver_args, max_iters=self.max_iters)
-                else:
-                    if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
-                        warnings.warn("`TensorStepMethod` should be monotone!")
-                    self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
 
             for p in group['params']:
                 state = self.state[p]
