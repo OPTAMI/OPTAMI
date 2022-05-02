@@ -42,7 +42,6 @@ class DampedNewton(Optimizer):
 
         for group in self.param_groups:
             params = group['params']
-            p = next(p for p in params)
 
             alpha = group['alpha']
             affine_invariant = group['affine_invariant']

@@ -3,24 +3,20 @@ from . import tuple_to_vec
 
 
 # Return tuple format of hessian-vector-product
-def hvp_from_grad(grads_tuple, params, vec_tuple):
+def hvp_from_grad(grads_tuple, list_params, vec_tuple):
     # don't damage grads_tuple. Grads_tuple should be calculated with create_graph=True
     dot = 0.
-    for i in range(len(grads_tuple)):
-        dot += grads_tuple[i].mul(vec_tuple[i]).sum()
-    hvp = torch.autograd.grad(dot, params, retain_graph=True)
-    return hvp
+    for grad, vec in zip(grads_tuple, vec_tuple):
+        dot += grad.mul(vec).sum()
+    return torch.autograd.grad(dot, list_params, retain_graph=True)
 
 
 # Return tuple format of hessian-vector-product
-def hess_vec_prod(closure, params, vec_tuple):
+def hess_vec_prod(closure, list_params, vec_tuple):
     # should be more friendly for sparse tensors
     output = closure()
-    grads = torch.autograd.grad(output, params, create_graph=True)
-    dot = 0.
-    for i in range(len(grads)):
-        dot += grads[i].mul(vec_tuple[i]).sum()
-    hvp = torch.autograd.grad(dot, params)
+    grads = torch.autograd.grad(output, list_params, create_graph=True)
+    hvp = hvp_from_grad(grads, list_params, vec_tuple)
     return hvp, grads
 
 
@@ -33,7 +29,7 @@ def flat_hvp(closure, list_params, vector):
     return hvp, flat_grad
 
 
-def third_derivative_vec(closure, params, vector, flat=True):
+def third_derivative_vec(closure, params, vector, flat=False):
     output = closure()
     grads = torch.autograd.grad(output, params, create_graph=True)
     dot = 0.
@@ -56,6 +52,5 @@ def flat_hessian(flat_grads, params):
     for i in range(flat_grads.size()[0]):
         temp_hess = torch.autograd.grad(flat_grads[i], params,
                                         retain_graph=True)
-        # print(temp_hess)
         full_hessian.append(tuple_to_vec.tuple_to_vector(temp_hess))
     return torch.stack(full_hessian)
