@@ -45,21 +45,7 @@ class Superfast(Optimizer):
             a_step = (2 * order - 1) / (2 * (order + 1) * (2 * order + 1)) \
                      * math.factorial(order - 1) * 2 * (1 / (2 * order)) ** order
         self.a_step = a_step
-        if self.TensorStepMethod is None:
-            if order == 3:
-                self.tensor_step_method = OPTAMI.BasicTensorMethod(
-                    params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                    subsolver_args=self.subsolver_args, max_iters=self.max_iters)
-            elif order == 2:
-                self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
-                    params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                    subsolver_args=self.subsolver_args, max_iters=self.max_iters)
-            else:  # order = 1
-                self.tensor_step_method = torch.optim.SGD(params, lr=1. / L)
-        else:
-            if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
-                warnings.warn("`TensorStepMethod` should be monotone!")
-            self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
+        self.tensor_step_method = None
 
 
     def step(self, closure):
@@ -81,7 +67,22 @@ class Superfast(Optimizer):
             state_common['k'] = 0
 
         k = state_common['k']
-
+        if self.tensor_step_method is None:
+            if self.TensorStepMethod is None:
+                if self.order == 3:
+                    self.tensor_step_method = OPTAMI.BasicTensorMethod(
+                        params, L=L, subsolver=self.subsolver, verbose=self.verbose,
+                        subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                elif self.order == 2:
+                    self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
+                        params, L=L, subsolver=self.subsolver, verbose=self.verbose,
+                        subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                else:  # order = 1
+                    self.tensor_step_method = torch.optim.SGD(params, lr=1. / L)
+            else:
+                if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
+                    warnings.warn("`TensorStepMethod` should be monotone!")
+                self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
 
         alpha = (1. - 1 / (k + 1)) ** (self.order + 1)
 
