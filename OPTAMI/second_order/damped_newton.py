@@ -22,7 +22,7 @@ class DampedNewton(Optimizer):
     MONOTONE = True
 
     def __init__(self, params, alpha: float = 2e-1, L: float = 1e+2, 
-                 lambd: float = 1e-7, subsolver: Optimizer = None,
+                 lambd: float = 1e-16, subsolver: Optimizer = None,
                  affine_invariant: bool = False, verbose: bool = True):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")

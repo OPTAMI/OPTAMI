@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from torchvision.transforms import ToTensor, Compose
+from torchvision.transforms import ToTensor, Compose, Resize
 from torchvision.datasets import MNIST
 from torch.autograd import Variable
 import OPTAMI
@@ -37,11 +37,13 @@ def train(model, optimizer, dataloader, epochs=10, verbose=True, return_grads=Fa
                     loss.backward()
                 return loss
 
-            image = Variable(images.view(-1, 28 ** 2))
+            image = Variable(images.view(-1, IMG_SIZE ** 2))
             label = Variable(labels).fmod(2)
 
-            loss = model.pure_loss(model(image), label)
+            loss = model.criterion(model(image), label)
             losses.append(loss.item())
+
+            optimizer.zero_grad()
             loss.backward()
             grad_norm = 0.
             for p in model.parameters():
@@ -50,7 +52,7 @@ def train(model, optimizer, dataloader, epochs=10, verbose=True, return_grads=Fa
                 param_norm = p.grad.data.norm(2)
                 grad_norm += param_norm.item()**2
             grads.append(grad_norm**0.5)
-            model.zero_grad()
+            optimizer.zero_grad()
 
             if verbose:
                 print(f'loss = {loss.item()}')
@@ -88,17 +90,18 @@ class LogisticRegression(torch.nn.Module):
         return loss
 
 
-BATCH_SIZE = 5000
-INPUT_DIM = 784
+BATCH_SIZE = 1000
+IMG_SIZE = 15
+INPUT_DIM = IMG_SIZE**2
 OUTPUT_DIM = 2
-EPOCHS = 5
+EPOCHS = 21
 PLOT = True
 NORMALIZE_PLOT = False
 SEED = 777
 torch.manual_seed(SEED)
 
 train_loader = DataLoader(dataset=MNIST(root='./data', train=True, download=True, 
-                          transform=Compose([ToTensor(), lambda x: x.double()])),
+                          transform=Compose([ToTensor(), Resize(IMG_SIZE), lambda x: x.double()])),
                           batch_size=BATCH_SIZE, shuffle=False)
 
 model = zero_all(LogisticRegression(INPUT_DIM, OUTPUT_DIM, gamma=1e-2))
@@ -107,11 +110,11 @@ L = 4.0
 optimizers = {
     # 'Hyperfast': OPTAMI.Hyperfast(model.parameters(), L=L),
     # 'Superfast': OPTAMI.Superfast(model.parameters(), L=L),
-    # 'CubicRegularizedNewton': OPTAMI.CubicRegularizedNewton(model.parameters(), L=L),
-    # 'DampedNewton': OPTAMI.DampedNewton(model.parameters(), alpha=5e-1, L=L),
-    'AffineInvariantDampedNewton': OPTAMI.DampedNewton(model.parameters(), L=L, affine_invariant=True),
-    'Hyperfast accelerated': OPTAMI.Hyperfast(model.parameters(), L=L, TensorStepMethod=OPTAMI.DampedNewton, tensor_step_kwargs={'affine_invariant': True, 'alpha': 1e-1}),
-    'Superfast accelerated': OPTAMI.Superfast(model.parameters(), L=L, TensorStepMethod=OPTAMI.DampedNewton, tensor_step_kwargs={'affine_invariant': True, 'alpha': 1e-1}),
+    'Cubic Regularized Newton': OPTAMI.CubicRegularizedNewton(model.parameters(), L=L),
+    'Damped Newton': OPTAMI.DampedNewton(model.parameters(), alpha=5e-1, L=L),
+    'Affine Invariant Newton': OPTAMI.DampedNewton(model.parameters(), L=L, affine_invariant=True),
+    # 'Hyperfast accelerated': OPTAMI.Hyperfast(model.parameters(), L=L, TensorStepMethod=OPTAMI.DampedNewton, tensor_step_kwargs={'affine_invariant': True, 'alpha': 1e-1}),
+    # 'Superfast accelerated': OPTAMI.Superfast(model.parameters(), L=L, TensorStepMethod=OPTAMI.DampedNewton, tensor_step_kwargs={'affine_invariant': True, 'alpha': 1e-1}),
     # 'SimilarTriangles': OPTAMI.SimilarTriangles(model.parameters(), L=L, is_adaptive=True)
 }
 
@@ -119,6 +122,8 @@ f_star = 0.
 divider = 1.
 
 f, axs = plt.subplots(1, 2, figsize=(10, 4))
+
+markers = ["o", "v", "d"]
 
 for i, (name, optimizer) in enumerate(optimizers.items()):
     losses, grads, working_time = train(model, optimizer, train_loader, epochs=EPOCHS, return_grads=True)
@@ -131,8 +136,8 @@ for i, (name, optimizer) in enumerate(optimizers.items()):
         if NORMALIZE_PLOT:
             axs[0].plot(torch.tensor(losses).sub(f_star).div(divider), label=name)
         else:
-            axs[0].plot(losses, label=name)
-        axs[1].semilogy(grads, label=name)
+            axs[0].plot(losses, label=name, marker=markers[i], markevery=3)
+        axs[1].semilogy(grads, label=name, marker=markers[i], markevery=3)
     else:
         print(name, losses, grads, working_time, sep='\n', end='\n\n')
 
@@ -148,5 +153,5 @@ if PLOT:
     axs[1].legend()
 
     plt.tight_layout()
-    # plt.savefig("figure.pdf")
+    plt.savefig("figure.pdf")
     plt.show()
