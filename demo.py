@@ -33,13 +33,8 @@ def train(model, optimizer, dataloader, epochs=10, verbose=True, return_grads=Fa
                 prediction = model(image)
                 return model.criterion(prediction, label)
 
-<<<<<<< HEAD
-            image = Variable(images.view(-1, IMG_SIZE ** 2))
-            label = Variable(labels).fmod(2)
-=======
             image = images.view(-1, 28 ** 2)
             label = labels.fmod(2)
->>>>>>> main
 
             loss = model.criterion(model(image), label)
             losses.append(loss.item())
