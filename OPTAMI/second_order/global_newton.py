@@ -3,10 +3,10 @@ from torch.optim.optimizer import Optimizer
 from OPTAMI.utils import tuple_to_vec, derivatives
 
 
-class DampedNewton(Optimizer):
-    """Implements Damped Newton Method.
-    It had been proposed in `TODO`
-    TODO
+class GlobalNewton(Optimizer):
+    """Implements Globally Regularized Newton Method.
+    It had been proposed in `Regularized Newton Method with Global O(1/k^2) Convergence`
+    https://arxiv.org/abs/2112.02089
     Contributors:
         Dmitry Kamzolov
         Dmitry Vilensky-Pasechnyuk
@@ -21,15 +21,11 @@ class DampedNewton(Optimizer):
     """
     MONOTONE = True
 
-    def __init__(self, params, alpha: float = 2e-1, L: float = 1e+2, 
-                 lambd: float = 1e-16, subsolver: Optimizer = None,
-                 affine_invariant: bool = False, verbose: bool = True):
+    def __init__(self, params, L: float = 1e+2, subsolver: Optimizer = None, verbose: bool = True):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
-        super().__init__(params, dict(
-            alpha=alpha, affine_invariant=affine_invariant, 
-            lambd=lambd, L=L, subsolver=subsolver))
+        super().__init__(params, dict(L=L, subsolver=subsolver))
 
         self.verbose = verbose
 
@@ -43,27 +39,22 @@ class DampedNewton(Optimizer):
         for group in self.param_groups:
             params = group['params']
 
-            alpha = group['alpha']
-            affine_invariant = group['affine_invariant']
             L = group['L']
-            lambd = group['lambd']
             subsolver = group['subsolver']
 
             g = tuple_to_vec.tuple_to_vector(
                 torch.autograd.grad(closure(), list(params), create_graph=True))
+
+            lambd = torch.sqrt(L * torch.norm(g))
 
             if subsolver is None:
                 x = exact(g, params, lambd)
             else:
                 raise NotImplementedError()
 
-            if affine_invariant:
-                G = L * g.dot(-tuple_to_vec.tuple_to_vector(x))
-                alpha = ((torch.sqrt(1 + 2*G) - 1) / G).item()
-
             with torch.no_grad():
                 for i, p in enumerate(params):
-                    p.add_(x[i], alpha=alpha)
+                    p.add_(x[i])
         return None
 
 

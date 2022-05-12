@@ -1,48 +1,22 @@
 #!/usr/bin/env python3
 
-from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
+from models_utils import LogisticRegression
+from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
+import warnings
 import OPTAMI
 import torch
 import time
 import sys
-import warnings
+
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
-
-def zero_all(model):
-    with torch.no_grad():
-        for param in model.parameters():
-            param.zero_()
-    return model
-
-
-class LogisticRegression(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, gamma=0.):
-        super().__init__()
-        self.gamma = gamma
-        self.linear = torch.nn.Linear(input_dim, output_dim)
-
-    def forward(self, x):
-        return self.linear(x)
-
-    def criterion(self, hypothesis, reference):
-        criterion = torch.nn.CrossEntropyLoss()
-        loss = criterion(hypothesis, reference)
-
-        if self.gamma > 0.:
-            for param in model.parameters():
-                loss += param.square().sum().mul(self.gamma)
-        return loss
-
-
 for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     Algorithm = getattr(OPTAMI, classname)
     torch.manual_seed(777)
-
 
     INPUT_DIM = 784
     OUTPUT_DIM = 2
@@ -57,7 +31,7 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     train_loader = DataLoader(dataset=MNIST(root='./data', train=True, transform=ToTensor(), download=True),
                             batch_size=100, shuffle=False)
 
-    model = zero_all(LogisticRegression(INPUT_DIM, OUTPUT_DIM))
+    model = LogisticRegression(INPUT_DIM, OUTPUT_DIM)
     optimizer = Algorithm(model.parameters(), L=L, verbose=False)
 
     tic = toc = time.time()

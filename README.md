@@ -37,6 +37,10 @@ Altough the development of this library was motivated primarily by the need in i
 ### 2.2 Second-order methods
 * Damped Newton method
 
+* Globally regularized Newton method
+
+   _Mishchenko, K._ Regularized Newton method with global O(1/k^2) convergence. arXiv preprint arXiv:2112.02089 (2021). https://arxiv.org/abs/2112.02089
+
 * Cubic regularized Newton method
 
    _Nesterov, Y., Polyak, B._ Cubic regularization of Newton method and its global performance. Math. Program. **108**, 177–205 (2006). https://doi.org/10.1007/s10107-006-0706-8
