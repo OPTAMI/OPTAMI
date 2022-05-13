@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, Compose, Resize
 from models_utils import LogisticRegression
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
@@ -18,7 +18,8 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     Algorithm = getattr(OPTAMI, classname)
     torch.manual_seed(777)
 
-    INPUT_DIM = 784
+    IMG_SIZE = 28
+    INPUT_DIM = IMG_SIZE**2
     OUTPUT_DIM = 2
 
     TIME_LIMIT = 100
@@ -28,8 +29,11 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
 
     failed_counter = 0
 
-    train_loader = DataLoader(dataset=MNIST(root='./data', train=True, transform=ToTensor(), download=True),
-                            batch_size=100, shuffle=False)
+    train_loader = DataLoader(
+        dataset=MNIST(root='./data', train=True, download=True, 
+        transform=Compose([ToTensor(), Resize(IMG_SIZE), lambda x: x.double().view(IMG_SIZE**2)]),
+        target_transform=lambda y: y % 2),
+        batch_size=100, shuffle=False)
 
     model = LogisticRegression(INPUT_DIM, OUTPUT_DIM)
     optimizer = Algorithm(model.parameters(), L=L, verbose=False)
@@ -38,12 +42,9 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     losses = []
 
     while toc - tic < TIME_LIMIT:
-        for i, (images, labels) in enumerate(train_loader):
+        for i, (image, label) in enumerate(train_loader):
             if i != 0:
                 continue
-
-            image = images.view(-1, 28 ** 2)
-            label = labels.fmod(2)
 
             def closure():
                 optimizer.zero_grad()

@@ -9,7 +9,7 @@ def zero_all(model):
             param.zero_()
 
 
-def train(model, optimizer, dataloader, img_size, epochs=10, verbose=False, return_grads=False):
+def train(model, optimizer, dataloader, epochs=10, verbose=False, return_grads=False):
     zero_all(model)
 
     tic = time.time()
@@ -17,7 +17,7 @@ def train(model, optimizer, dataloader, img_size, epochs=10, verbose=False, retu
     grads = []
 
     for _ in tqdm(range(epochs)):
-        for i, (images, labels) in enumerate(dataloader):
+        for i, (image, label) in enumerate(dataloader):
             if i != 0:
                 continue
 
@@ -25,9 +25,6 @@ def train(model, optimizer, dataloader, img_size, epochs=10, verbose=False, retu
                 optimizer.zero_grad()
                 prediction = model(image)
                 return model.criterion(prediction, label)
-
-            image = images.view(-1, img_size ** 2)
-            label = labels.fmod(2)
 
             loss = model.criterion(model(image), label)
             losses.append(loss.item())
