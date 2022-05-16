@@ -9,7 +9,7 @@ def zero_all(model):
             param.zero_()
 
 
-def train(model, optimizer, dataloader, epochs=10, verbose=False, return_grads=False):
+def train(model, optimizer, dataloader, device, epochs=10, verbose=False, return_grads=False):
     zero_all(model)
 
     tic = time.time()
@@ -25,6 +25,9 @@ def train(model, optimizer, dataloader, epochs=10, verbose=False, return_grads=F
                 optimizer.zero_grad()
                 prediction = model(image)
                 return model.criterion(prediction, label)
+
+            image = image.to(device)
+            label = label.to(device)
 
             loss = model.criterion(model(image), label)
             losses.append(loss.item())
