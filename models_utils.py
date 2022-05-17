@@ -54,6 +54,31 @@ def train(model, optimizer, dataloader, device, epochs=10, verbose=False, return
     return losses, toc - tic
 
 
+def minimize(f, w, optimizer, epochs=10, verbose=False):
+    losses = []
+    grads = []
+
+    for _ in tqdm(range(epochs)):
+        def closure():
+            optimizer.zero_grad()
+            return f(w)
+
+        loss = closure()
+        loss.backward()
+
+        f_val = loss.item()
+        grad_norm_squared = torch.norm(w.grad.data, p=2)**2
+
+        losses.append(f_val)
+        grads.append(grad_norm_squared)
+
+        if verbose:
+            print(f'f = {f_val}, grad = {grad_norm_squared}')
+        optimizer.step(closure)
+
+    return losses, grads
+
+
 class LogisticRegression(torch.nn.Module):
     def __init__(self, input_dim, output_dim, gamma=0.):
         super().__init__()
