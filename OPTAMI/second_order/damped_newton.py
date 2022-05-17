@@ -1,7 +1,7 @@
 import torch
 from torch.optim.optimizer import Optimizer
 from OPTAMI.utils import tuple_to_vec, derivatives
-
+import math
 
 class DampedNewton(Optimizer):
     """Implements Damped Newton Method.
@@ -21,8 +21,8 @@ class DampedNewton(Optimizer):
     """
     MONOTONE = True
 
-    def __init__(self, params, alpha: float = 2e-1, L: float = 1e+2, 
-                 lambd: float = 1e-16, subsolver: Optimizer = None,
+    def __init__(self, params, alpha: float = 2e-1, L: float = 1e+2,
+                 lambd: float = 0., subsolver: Optimizer = None,
                  affine_invariant: bool = False, verbose: bool = True):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
@@ -48,30 +48,34 @@ class DampedNewton(Optimizer):
             L = group['L']
             lambd = group['lambd']
             subsolver = group['subsolver']
-
-            g = tuple_to_vec.tuple_to_vector(
-                torch.autograd.grad(closure(), list(params), create_graph=True))
+            g = torch.autograd.grad(closure(), list(params), create_graph=True)
 
             if subsolver is None:
-                x = exact(g, params, lambd)
+                h = exact(g, params, lambd)
             else:
                 raise NotImplementedError()
 
             if affine_invariant:
-                G = L * g.dot(-tuple_to_vec.tuple_to_vector(x))
-                alpha = ((torch.sqrt(1 + 2*G) - 1) / G).item()
+                G = 0.
+                for h_i, g_i in zip(h, g):
+                    G += g_i.mul(-h_i).sum()
+                G = L * math.sqrt(G)
+                alpha = (math.sqrt(1 + 2*G) - 1) / G
+
+            #if gradient_regularization:
 
             with torch.no_grad():
                 for i, p in enumerate(params):
-                    p.add_(x[i], alpha=alpha)
+                    p.add_(h[i], alpha=alpha)
         return None
 
 
 def exact(g, params, lambd):
-    H = derivatives.flat_hessian(g, list(params))
+    g_flat = tuple_to_vec.tuple_to_vector(g)
+    H = derivatives.flat_hessian(g_flat, list(params))
 
-    c = g.clone().detach().to(torch.double)
-    A = H.clone().detach().to(torch.double)
+    c = g_flat.clone().detach().to(torch.double)
+    A = H.clone().detach().to(torch.double) # to check do we actually need this copy
 
     if c.dim() != 1:
         raise ValueError(f"`c` must be a vector, but c = {c}")
@@ -85,5 +89,7 @@ def exact(g, params, lambd):
     if (A.t() - A).max() > 0.1:
         raise ValueError("`A` is not symmetric")
 
-    x = torch.linalg.solve(A + lambd * torch.eye(*c.size()), -c)
-    return tuple_to_vec.rollup_vector(x, list(params))
+    h = torch.linalg.solve(A + lambd * torch.eye(*c.size()), -c)
+    # add assert Ax = with verbose = true
+
+    return tuple_to_vec.rollup_vector(h, list(params))
