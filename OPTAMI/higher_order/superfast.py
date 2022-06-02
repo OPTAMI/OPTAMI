@@ -1,16 +1,16 @@
+from torch.optim.optimizer import Optimizer
+from OPTAMI.utils import tuple_to_vec
+import warnings
+import OPTAMI
 import torch
 import math
-import warnings
-from torch.optim.optimizer import Optimizer
-import OPTAMI
-from OPTAMI.utils import tuple_to_vec
 
 
 class Superfast(Optimizer):
     """Implements Inexact Accelerated Tensor Method.
      Exact version was proposed by Yu.Nesterov in "Implementable tensor methods in unconstrained convex optimization"
      https://doi.org/10.1007/s10107-019-01449-1
-     Detailed inexact version was proposed be Yu.Nesterov in "Superfast Second-Order Methods for Unconstrained Convex Optimization"
+     Detailed inexact version was proposed by Yu.Nesterov in "Superfast Second-Order Methods for Unconstrained Convex Optimization"
      https://doi.org/10.1007/s10957-021-01930-y
     Contributors:
         Dmitry Kamzolov
@@ -34,18 +34,21 @@ class Superfast(Optimizer):
         if len(self.param_groups) != 1:
             raise ValueError("Superfast doesn't support per-parameter options "
                              "(parameter groups)")
+
         self.order = order
         self.TensorStepMethod = TensorStepMethod
         self.subsolver = subsolver
         self.subsolver_args = subsolver_args
         self.max_iters = max_iters
         self.tensor_step_kwargs = tensor_step_kwargs
-        self.verbose = verbose
+        self.tensor_step_method = None
+
         if a_step is None:
             a_step = (2 * order - 1) / (2 * (order + 1) * (2 * order + 1)) \
                      * math.factorial(order - 1) * 2 * (1 / (2 * order)) ** order
         self.a_step = a_step
-        self.tensor_step_method = None
+
+        self.verbose = verbose
 
 
     def step(self, closure):
@@ -60,13 +63,6 @@ class Superfast(Optimizer):
         params = group['params']
         L = group['L']
 
-        p = next(iter(params))
-        state_common = self.state[p]
-
-        if 'k' not in state_common:
-            state_common['k'] = 0
-
-        k = state_common['k']
         if self.tensor_step_method is None:
             if self.TensorStepMethod is None:
                 if self.order == 3:
@@ -84,6 +80,13 @@ class Superfast(Optimizer):
                     warnings.warn("`TensorStepMethod` should be monotone!")
                 self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
 
+        p = next(iter(params))
+        state_common = self.state[p]
+
+        if 'k' not in state_common:
+            state_common['k'] = 0
+
+        k = state_common['k']
         alpha = (1. - 1 / (k + 1)) ** (self.order + 1)
 
         for p in params:

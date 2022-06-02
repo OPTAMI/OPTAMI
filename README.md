@@ -45,6 +45,10 @@ Altough the development of this library was motivated primarily by the need in i
 
    _Nesterov, Y., Polyak, B._ Cubic regularization of Newton method and its global performance. Math. Program. **108**, 177–205 (2006). https://doi.org/10.1007/s10107-006-0706-8
 
+* Proximal Point Segment Search (Superfast) method
+
+   _Nesterov, Y._ Superfast second-order methods for unconstrained convex optimization. Journal of Optimization Theory and Applications **191**, 1–30 (2021). https://doi.org/10.1007/s10957-021-01930-y
+
 ### 2.3 Third-order methods
 * Basic tensor method (Bregman distance gradient method for p = 3)
 
@@ -100,7 +104,7 @@ Unit tests are implemented using the python `unittest` library, and are provided
 Universal tests check the expected behaviour and minimal performance requiremences for the algorithms on some toy problems. The main goal of these tests is to check the guarantees provided by the methods and eliminate the divergence of the algorithms. The universal tests are not available on edit for the side contributor, but can be complicated by authors in order to provide some more strong guarantees (for example, by checking the convergence rate on the problems with the known solution). In these cases, some algorithms that did not passed the enhanced tests may be deleted from _main_ branch until the correction (so we recommend to use only release versions of out library as a dependency in your project). All the universal tests presented in library can be launched manually with a command `./run_universal_tests.py`.
 
 Now, the list of the used toy problems is as follows:
-* MNIST dataset (n = 784, m = 5000), classification into even/odd numbers with simple logistic regression model.
+* a9a dataset (n = 123, m = 32561)
 
 ### 5.3 Performance tests
 

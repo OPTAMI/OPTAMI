@@ -56,8 +56,6 @@ class Hyperfast(Optimizer):
         self.verbose = verbose
 
 
-
-
     def step(self, closure):
         """Performs a single optimization step.
         Arguments:

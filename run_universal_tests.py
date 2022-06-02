@@ -1,66 +1,69 @@
 #!/usr/bin/env python3
 
-from torchvision.transforms import ToTensor, Compose, Resize
-from models_utils import LogisticRegression
-from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
+from sklearn.datasets import load_svmlight_file
+from sklearn.preprocessing import normalize
+from models_utils import minimize
 import warnings
 import OPTAMI
 import torch
-import time
 import sys
 
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
+DATASET = "a9a"
+F_STAR = 0.32501597692415846
+
+EPOCHS = 25
+EPSILON = 0.08
+EPSILON_MAX = 0.2
+
+L = 0.5
+mu = 1e-5
+
+if DATASET == "a9a":
+    dataset = load_svmlight_file('./data/LibSVM/a9a.txt')
+    x = torch.tensor(normalize(dataset[0].toarray(), norm='l2', axis=1), dtype=torch.double)
+    y = torch.tensor(dataset[1], dtype=torch.double)
+    INPUT_SIZE = x.size()[1]
+else:
+    raise AttributeError(f"dataset {DATASET} undefined")
+
 for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     Algorithm = getattr(OPTAMI, classname)
     torch.manual_seed(777)
 
-    IMG_SIZE = 28
-    INPUT_DIM = IMG_SIZE**2
-    OUTPUT_DIM = 2
-
-    TIME_LIMIT = 100
-    L = 4.0
-    F_STAR_PLUS_EPSILON = 0.15
-    F_REASONABLE = 0.25
-
     failed_counter = 0
 
-    train_loader = DataLoader(
-        dataset=MNIST(root='./data', train=True, download=True, 
-        transform=Compose([ToTensor(), Resize(IMG_SIZE), lambda x: x.double().view(IMG_SIZE**2)]),
-        target_transform=lambda y: y % 2),
-        batch_size=100, shuffle=False)
+    def logreg(w):
+        return torch.nn.functional.soft_margin_loss(x.mv(w), y) + mu/2 * torch.norm(w, p=2)**2
 
-    model = LogisticRegression(INPUT_DIM, OUTPUT_DIM)
-    optimizer = Algorithm(model.parameters(), L=L, verbose=False)
+    w = torch.zeros(INPUT_SIZE).double().requires_grad_()
+    optimizer = Algorithm([w], L=L, verbose=False)
+    name = str(Algorithm).split('.')[-1][:-2]
 
-    tic = toc = time.time()
-    losses = []
+    print(name)
+    times, losses, grads = minimize(logreg, w, optimizer, epochs=EPOCHS, verbose=True, tqdm_on=False)
+    print()
 
-    while toc - tic < TIME_LIMIT:
-        for i, (image, label) in enumerate(train_loader):
-            if i != 0:
-                continue
+    # tic = toc = time.time()
+    # losses = []
 
-            def closure():
-                optimizer.zero_grad()
-                prediction = model(image)
-                return model.criterion(prediction, label)
+    # while toc - tic < TIME_LIMIT:
+    #     def closure():
+    #         optimizer.zero_grad()
+    #         return logreg(w)
 
-            loss = closure().item()
-            losses.append(loss)
+    #     loss = closure()
+    #     f_val = loss.item()
+    #     print(f_val)
+    #     losses.append(f_val)
 
-            optimizer.step(closure)
-            toc = time.time()
+    #     loss.backward()
+    #     optimizer.step(closure)
+    #     toc = time.time()
 
-            if toc - tic > TIME_LIMIT:
-                break
-
-    print(losses)
     if Algorithm.MONOTONE:
         print(f"test_monotonicity ({classname}) ... ", end="")
         if all(x >= y for x, y in zip(losses, losses[1:])):
@@ -70,7 +73,7 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
             failed_counter += 1
     
     print(f"test_obtained_solution ({classname}) ... ", end="")
-    if losses[-1] < F_STAR_PLUS_EPSILON:
+    if losses[-1] < F_STAR + EPSILON:
         print("ok")
     else:
         print("FAIL")
@@ -78,11 +81,11 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
 
     print(f"test_divergence ({classname}) ... ", end="")
     try:
-        if next(filter(lambda i: all(x > F_REASONABLE for x in losses[i:]), range(len(losses)))) / len(losses) > 0.9:
+        if next(filter(lambda i: all(x > F_STAR + EPSILON_MAX for x in losses[i:]), range(len(losses)))) / len(losses) > 0.9:
             print("ok")
         else:
             print("FAIL")
-            print(next(filter(lambda i: all(x > F_REASONABLE for x in losses[i:]), range(len(losses)))) / len(losses))
+            print(next(filter(lambda i: all(x > F_STAR + EPSILON_MAX for x in losses[i:]), range(len(losses)))) / len(losses))
             failed_counter += 1
     except StopIteration:
         print("ok")

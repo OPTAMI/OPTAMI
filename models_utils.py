@@ -9,66 +9,36 @@ def zero_all(model):
             param.zero_()
 
 
-def train(model, optimizer, dataloader, device, epochs=10, verbose=False, return_grads=False):
-    zero_all(model)
+def minimize(f, w, optimizer, epochs=10, verbose=False, tqdm_on=False):
+    times = []
+    losses = []
+    grads = []
+
+    def closure():
+        optimizer.zero_grad()
+        return f(w)
+
+    times.append(0.)
+    loss = closure()
+    losses.append(loss.item())
+    loss.backward()
+    grads.append(torch.norm(w.grad.data, p=2)**2)
+    optimizer.zero_grad()
 
     tic = time.time()
-    losses = []
-    grads = []
 
-    for _ in tqdm(range(epochs)):
-        for i, (image, label) in enumerate(dataloader):
-            if i != 0:
-                continue
+    r = range(epochs)
+    if tqdm_on:
+        r = tqdm(r)
 
-            def closure():
-                optimizer.zero_grad()
-                prediction = model(image)
-                return model.criterion(prediction, label)
-
-            image = image.to(device)
-            label = label.to(device)
-
-            loss = model.criterion(model(image), label)
-            losses.append(loss.item())
-
-            optimizer.zero_grad()
-            loss.backward()
-            grad_norm = 0.
-            for p in model.parameters():
-                if p.grad is None:
-                    continue
-                param_norm = p.grad.data.norm(2)
-                grad_norm += param_norm.item()**2
-            grads.append(grad_norm)
-            optimizer.zero_grad()
-
-            if verbose:
-                print(f'loss = {loss.item()}')
-
-            optimizer.step(closure)
-
-    toc = time.time()
-    if return_grads:
-        return losses, grads, toc - tic
-    return losses, toc - tic
-
-
-def minimize(f, w, optimizer, epochs=10, verbose=False):
-    losses = []
-    grads = []
-
-    for _ in tqdm(range(epochs)):
-        def closure():
-            optimizer.zero_grad()
-            return f(w)
-
+    for _ in r:
         loss = closure()
         loss.backward()
 
         f_val = loss.item()
         grad_norm_squared = torch.norm(w.grad.data, p=2)**2
 
+        times.append(time.time() - tic)
         losses.append(f_val)
         grads.append(grad_norm_squared)
 
@@ -76,29 +46,4 @@ def minimize(f, w, optimizer, epochs=10, verbose=False):
             print(f'f = {f_val}, grad = {grad_norm_squared}')
         optimizer.step(closure)
 
-    return losses, grads
-
-
-class LogisticRegression(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, gamma=0.):
-        super().__init__()
-        self.gamma = gamma
-        self.linear = torch.nn.Linear(input_dim, output_dim).double()
-        zero_all(self)
-
-    def forward(self, x):
-        outputs = self.linear(x)
-        return outputs
-
-    def criterion(self, hypothesis, reference):
-        criterion = torch.nn.CrossEntropyLoss()
-        loss = criterion(hypothesis, reference)
-
-        if self.gamma > 0.:
-            for param in self.parameters():
-                loss += param.square().sum().mul(self.gamma)
-        return loss
-
-    def pure_loss(self, hypothesis, reference):
-        criterion = torch.nn.CrossEntropyLoss()
-        return criterion(hypothesis, reference)
+    return times, losses, grads
