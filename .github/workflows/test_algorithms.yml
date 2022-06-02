@@ -22,7 +22,11 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Download MNIST
       run: |
-        python3 -c "from torchvision.datasets import MNIST; MNIST(root='./data', train=True, download=True)"
+        python3 -c "from torchvision.datasets import MNIST; MNIST(root='./data/MNIST', train=True, download=True)"
+    - name: Download a9a
+      run: |
+        mkdir -p data/LibSVM
+        wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a -O data/LibSVM/a9a.txt
     - name: Test
       run: |
         ./run_unit_tests.sh
