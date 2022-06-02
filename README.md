@@ -108,7 +108,8 @@ Now, the list of the used toy problems is as follows:
 
 ### 5.3 Performance tests
 
-TBD
+![plots_a9a_iters](/figure_iters.jpg?raw=true "Performance of all methods on a9a (a)")
+![plots_a9a_time](/figure_time.jpg?raw=true "Performance of all methods on a9a (b)")
 
 ## 6. Rights
 Copyright © 2020–2022 Dmitry Kamzolov
