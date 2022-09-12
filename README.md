@@ -32,10 +32,12 @@ Altough the development of this library was motivated primarily by the need in i
 ### 2.1 First-order methods
 * Similar Triangles method
 
-   _Gasnikov, A.V., Nesterov, Y.E._ Universal Method for Stochastic Composite Optimization Problems. Comput. Math. and Math. Phys. **58**, 48–64 (2018). https://doi.org/10.1134/S0965542518010050
+   _Gasnikov, A., Nesterov, Y._ Universal Method for Stochastic Composite Optimization Problems. Comput. Math. and Math. Phys. **58**, 48–64 (2018). https://doi.org/10.1134/S0965542518010050
 
 ### 2.2 Second-order methods
 * Damped Newton method
+
+* Affine-Invariant Cubic Newton method
 
 * Globally regularized Newton method
 
@@ -61,7 +63,11 @@ Altough the development of this library was motivated primarily by the need in i
 
 * Hyperfast method
 
-   _Kamzolov D._ Near-optimal hyperfast second-order method for convex optimization. International Conference on Mathematical Optimization Theory and Operations Research, 167–178 (2020). https://doi.org/10.1007/978-3-030-58657-7_15
+   _Kamzolov, D._ Near-optimal hyperfast second-order method for convex optimization. International Conference on Mathematical Optimization Theory and Operations Research, 167–178 (2020). https://doi.org/10.1007/978-3-030-58657-7_15
+
+* Optimal tensor method
+
+   _Kovalev, D., Gasnikov, A._ The First Optimal Acceleration of High-Order Methods in Smooth Convex Optimization. arXiv preprint arXiv:2205.09647 (2022). https://arxiv.org/abs/2205.09647
 
 ## 3. Citation
 
