@@ -7,7 +7,7 @@ import os
 
 
 f, axs = plt.subplots(1, 2, figsize=(10, 4))
-markers = ["o", "v", "d", "s", "^", "<", ">", "+"]
+markers = ["o", "v", "d", "s", "^", "<", ">", "+", "*"]
 
 DATASET = "a9a"
 F_START = 0.6931471805599453
@@ -16,6 +16,9 @@ WITH_TIME = False
 
 LOG_PATH = f"logs_{DATASET}"
 for i, file in enumerate(sorted(os.listdir(LOG_PATH))):
+    if file[0] == ".":
+        continue
+
     with open(os.path.join(LOG_PATH, file), "rb") as f:
         times, losses, grads = pickle.load(f)
 
