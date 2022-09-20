@@ -21,7 +21,7 @@ class Optimal(Optimizer):
     """
     MONOTONE = False
 
-    def __init__(self, params, eta0: float = 1e-3, L: float = 1e+3, sigma: float = 0.5, order: int = 3,
+    def __init__(self, params, eta0: float = 1e-3, L: float = 1e+3, sigma: float = 0.5, order: int = 2,
                  TensorStepMethod: Optimizer = None, tensor_step_kwargs: dict = None,
                  subsolver: Optimizer = None, subsolver_args: dict = None,
                  max_iters: int = None, verbose: bool = True):
@@ -106,9 +106,21 @@ class Optimal(Optimizer):
                 with torch.no_grad():
                     p.zero_().add_(state['xt'])
 
-            # TODO: tensor step is for A(.), not for f(.)
-            self.tensor_step_method.step(closure)
+            def regularized_closure():
+                f = closure()
+                norm = 0
+                for p in params:
+                    state = self.state[p]
+                    norm += torch.linalg.norm(p.sub(state['xg'].detach())).item()**2
+                f += 1/(2*lambd) * norm
+                return f
+
+            self.tensor_step_method.step(regularized_closure)
             self.zero_grad()
+
+            for p in params:
+                state = self.state[p]
+                state['xt+1/2'] = p.detach().clone()
 
             with torch.enable_grad():
                 closure().backward()
