@@ -12,7 +12,7 @@ markers = ["o", "v", "d", "s", "^", "<", ">", "+", "*"]
 DATASET = "a9a"
 F_START = 0.6931471805599453
 F_STAR  = 0.32501597692415846
-WITH_TIME = False
+WITH_TIME = True
 
 LOG_PATH = f"logs_{DATASET}"
 for i, file in enumerate(sorted(os.listdir(LOG_PATH))):
