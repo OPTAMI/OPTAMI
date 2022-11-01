@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-os.chdir('./')
 from sklearn.datasets import load_svmlight_file
 from sklearn.preprocessing import normalize
 import warnings
