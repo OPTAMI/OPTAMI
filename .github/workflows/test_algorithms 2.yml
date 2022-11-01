@@ -29,5 +29,5 @@ jobs:
         pytest ./tests
     - name: Test
       run: |
-        ./tests/run_unit_tests.sh
+        ./run_unit_tests.sh
         ./tests/run_universal_tests.py
