@@ -1,7 +1,7 @@
 import unittest
 import unittest.mock
 import torch
-from .similar_triangles import SimilarTriangles
+from OPTAMI.first_order.similar_triangles import SimilarTriangles
 
 
 class TestSimilarTriangles(unittest.TestCase):

@@ -1,0 +1,20 @@
+[
+  {
+    "algorithm": "Hyperfast",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 1, "config": {"order":  3}}
+    ]
+  },
+  {
+    "algorithm": "Superfast",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 4, "config": {"order":  3, "a_step": 0.1 }}
+    ]
+  },
+  {
+    "algorithm": "BasicTensorMethod",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 4, "config": {}}
+    ]
+  }
+]
