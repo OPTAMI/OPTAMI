@@ -2,7 +2,7 @@
 
 from sklearn.datasets import load_svmlight_file
 from sklearn.preprocessing import normalize
-from models_utils import minimize
+from OPTAMI.utils.fit import func_fit
 import warnings
 import OPTAMI
 import torch
@@ -22,13 +22,12 @@ EPSILON_MAX = 0.2
 L = 0.5
 mu = 1e-5
 
-if DATASET == "a9a":
-    dataset = load_svmlight_file('./data/LibSVM/a9a.txt')
-    x = torch.tensor(normalize(dataset[0].toarray(), norm='l2', axis=1), dtype=torch.double)
-    y = torch.tensor(dataset[1], dtype=torch.double)
-    INPUT_SIZE = x.size()[1]
-else:
+if DATASET != "a9a":
     raise AttributeError(f"dataset {DATASET} undefined")
+dataset = load_svmlight_file('./data/LibSVM/a9a.txt')
+x = torch.tensor(normalize(dataset[0].toarray(), norm='l2', axis=1), dtype=torch.double)
+y = torch.tensor(dataset[1], dtype=torch.double)
+INPUT_SIZE = x.size()[1]
 
 for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     Algorithm = getattr(OPTAMI, classname)
@@ -37,32 +36,16 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     failed_counter = 0
 
     def logreg(w):
-        return torch.nn.functional.soft_margin_loss(x.mv(w), y) + mu/2 * torch.norm(w, p=2)**2
+        return torch.nn.functional.soft_margin_loss(x @ w, y) + mu/2 * w.square().sum()
 
     w = torch.zeros(INPUT_SIZE).double().requires_grad_()
     optimizer = Algorithm([w], L=L, verbose=False)
     name = str(Algorithm).split('.')[-1][:-2]
 
     print(name)
-    times, losses, grads = minimize(logreg, w, optimizer, epochs=EPOCHS, verbose=True, tqdm_on=False)
+    losses, times, grads = func_fit(optimizer, EPOCHS, logreg, w)
     print()
 
-    # tic = toc = time.time()
-    # losses = []
-
-    # while toc - tic < TIME_LIMIT:
-    #     def closure():
-    #         optimizer.zero_grad()
-    #         return logreg(w)
-
-    #     loss = closure()
-    #     f_val = loss.item()
-    #     print(f_val)
-    #     losses.append(f_val)
-
-    #     loss.backward()
-    #     optimizer.step(closure)
-    #     toc = time.time()
 
     if Algorithm.MONOTONE:
         print(f"test_monotonicity ({classname}) ... ", end="")

@@ -2,7 +2,7 @@
 
 from sklearn.datasets import load_svmlight_file
 from sklearn.preprocessing import normalize
-from models_utils import minimize
+from OPTAMI.utils.fit import func_fit
 import argparse
 import OPTAMI
 import pickle
@@ -26,13 +26,12 @@ EPOCHS = args.epochs
 L = 0.5
 mu = 1e-5
 
-if DATASET == "a9a":
-    dataset = load_svmlight_file('./data/LibSVM/a9a.txt')
-    x = torch.tensor(normalize(dataset[0].toarray(), norm='l2', axis=1), dtype=torch.double)
-    y = torch.tensor(dataset[1], dtype=torch.double)
-    INPUT_SIZE = x.size()[1]
-else:
+if DATASET != "a9a":
     raise AttributeError(f"dataset {DATASET} undefined")
+dataset = load_svmlight_file('./data/LibSVM/a9a.txt')
+x = torch.tensor(normalize(dataset[0].toarray(), norm='l2', axis=1), dtype=torch.double)
+y = torch.tensor(dataset[1], dtype=torch.double)
+INPUT_SIZE = x.size()[1]
 
 def logreg(w):
     return torch.nn.functional.soft_margin_loss(x.mv(w), y) + mu/2 * torch.norm(w, p=2)**2
@@ -49,7 +48,7 @@ for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
     optimizer = Algorithm([w], L=L, verbose=False)
 
     print(name)
-    times, losses, grads = minimize(logreg, w, optimizer, epochs=EPOCHS, verbose=True, tqdm_on=False)
+    losses, times, grads = func_fit(optimizer, EPOCHS, logreg, w)
     print()
 
     with open(os.path.join(LOG_PATH, f"{name}.pkl"), "wb") as f:
