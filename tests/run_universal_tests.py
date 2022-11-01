@@ -6,7 +6,6 @@ from sklearn.preprocessing import normalize
 import warnings
 import sys
 sys.path.append("./")
-
 import OPTAMI
 from OPTAMI.utils.fit import func_fit
 
