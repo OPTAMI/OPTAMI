@@ -3,8 +3,8 @@
 from sklearn.datasets import load_svmlight_file
 from sklearn.preprocessing import normalize
 import warnings
-import OPTAMI
 from OPTAMI.utils.fit import func_fit
+import OPTAMI
 import torch
 import sys
 
