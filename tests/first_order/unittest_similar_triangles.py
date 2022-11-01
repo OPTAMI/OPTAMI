@@ -1,6 +1,8 @@
 import unittest
 import unittest.mock
 import torch
+import sys
+sys.path.append("./")
 from OPTAMI.first_order.similar_triangles import SimilarTriangles
 
 

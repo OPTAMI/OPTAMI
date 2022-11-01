@@ -1,8 +1,9 @@
 import json
 import torch
+import sys
+sys.path.append("./")
 import OPTAMI as opt
 import numpy as np
-import os
 
 def f_small_pow_4(x):
     return x.square().square().sum()

@@ -24,10 +24,10 @@ jobs:
       run: |
         mkdir -p data/LibSVM
         wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a -O data/LibSVM/a9a.txt
-    - name: PyTest
-      run: |
-        pytest ./tests
     - name: Test
       run: |
         ./run_unit_tests.sh
         ./tests/run_universal_tests.py
+    - name: PyTest
+      run: |
+        pytest ./tests
