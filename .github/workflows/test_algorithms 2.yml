@@ -26,5 +26,5 @@ jobs:
         wget https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a -O data/LibSVM/a9a.txt
     - name: Test
       run: |
-        ./OPTAMI/tests/run_unit_tests.sh
-        ./OPTAMI/tests/run_universal_tests.py
+        ./tests/run_unit_tests.sh
+        ./tests/run_universal_tests.py

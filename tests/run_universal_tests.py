@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
+import torch
 from sklearn.datasets import load_svmlight_file
 from sklearn.preprocessing import normalize
 import warnings
-from OPTAMI.utils.fit import func_fit
-import OPTAMI
-import torch
 import sys
+sys.path.append("./")
+
+import OPTAMI
+from OPTAMI.utils.fit import func_fit
+
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
