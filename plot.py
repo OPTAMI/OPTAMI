@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
-import numpy as np
+import torch
 import pickle
 import os
 
@@ -25,10 +25,10 @@ for i, file in enumerate(sorted(os.listdir(LOG_PATH))):
     name = file.split(".")[0]
 
     if WITH_TIME:
-        axs[0].semilogy(times, np.array(losses) - F_STAR, label=name, marker=markers[i], markevery=max(1, len(losses) // 10))
+        axs[0].semilogy(times, torch.tensor(losses) - F_STAR, label=name, marker=markers[i], markevery=max(1, len(losses) // 10))
         axs[1].semilogy(times, grads, label=name, marker=markers[i], markevery=max(1, len(grads) // 10))
     else:
-        axs[0].semilogy(np.array(losses) - F_STAR, label=name, marker=markers[i], markevery=max(1, len(losses) // 10))
+        axs[0].semilogy(torch.tensor(losses) - F_STAR, label=name, marker=markers[i], markevery=max(1, len(losses) // 10))
         axs[1].semilogy(grads, label=name, marker=markers[i], markevery=max(1, len(grads) // 10))
 
 if WITH_TIME:
