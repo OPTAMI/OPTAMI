@@ -12,7 +12,6 @@ class ProxPointSS(Optimizer):
     Contributors:
         Dmitry Kamzolov
         Dmitry Vilensky-Pasechnyuk
-        Golubeva T.
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         L (float): estimated value of Lipschitz constant for the hessian (default: 1e+3)
@@ -22,7 +21,7 @@ class ProxPointSS(Optimizer):
     def __init__(self, params, L: float = 1e+3, approx: float = 16., 
                  TensorStepMethod: Optimizer = None, tensor_step_kwargs: dict = None,
                  subsolver: Optimizer = None, subsolver_args: dict = None,
-                 max_iters: int = None, verbose: bool = True):
+                 max_iters: int = None, verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
@@ -39,6 +38,7 @@ class ProxPointSS(Optimizer):
         self.tensor_step_method = None
 
         self.verbose = verbose
+        self.testing = testing
 
 
     def step(self, closure):
@@ -58,7 +58,7 @@ class ProxPointSS(Optimizer):
             if self.TensorStepMethod is None:
                 self.tensor_step_method = OPTAMI.BasicTensorMethod(
                     params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                    subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                    subsolver_args=self.subsolver_args, max_iters=self.max_iters, testing=self.testing)
             else:
                 if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
                     warnings.warn("`TensorStepMethod` should be monotone!")

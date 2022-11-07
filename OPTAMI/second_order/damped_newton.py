@@ -26,7 +26,7 @@ https://arxiv.org/pdf/2211.00140.pdf
         variant (str):
         None - classical Damped Newton Method;
         'AIC' - Affine-Invariant Cubic Newton;
-        'GradReg' - Gradient Regularized Newton (default: None)
+        'GradReg' - Gradient Regularized Newton (default: 'GradReg')
         alpha (float): step-size for Damped Newton Method (default: 1.)
         L (float): estimated value of Lipschitz constant of the Hessian (default: 1.)
         lambd (float): estimated value of Hessian regularizer (default: 0.)
@@ -34,7 +34,7 @@ https://arxiv.org/pdf/2211.00140.pdf
     """
     MONOTONE = True
 
-    def __init__(self, params, variant: str = None, alpha: float = 1., L: float = 1.,
+    def __init__(self, params, variant: str = 'GradReg', alpha: float = 1., L: float = 1.,
                  lambd: float = 0., subsolver: Optimizer = None, verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")

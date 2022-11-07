@@ -21,6 +21,7 @@ def nesterov_lower_3(x):
 
 def test_steps():
     methods = {
+        'Optimal': opt.Optimal,
         'Hyperfast': opt.Hyperfast,
         'Superfast': opt.Superfast,
         'BasicTensorMethod': opt.BasicTensorMethod

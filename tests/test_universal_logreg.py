@@ -18,11 +18,11 @@ def test_universal_logreg():
     F_STAR = 0.32501597692415846
 
     EPOCHS = 25
-    EPSILON = 0.08
+    EPSILON = 0.1
     EPSILON_MAX = 0.2
 
-    L = 0.5
-    mu = 1e-5
+    L = 0.25
+    mu = 1e-3
 
     if DATASET != "a9a":
         raise AttributeError(f"dataset {DATASET} undefined")
