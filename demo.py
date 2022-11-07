@@ -21,8 +21,7 @@ args = parser.parse_args()
 DATASET = args.dataset
 EPOCHS = args.epochs
 
-# L = os.environ("L")
-# mu = os.environ("mu")
+
 L = 0.5
 mu = 1e-5
 
@@ -34,7 +33,7 @@ y = torch.tensor(dataset[1], dtype=torch.double)
 INPUT_SIZE = x.size()[1]
 
 def logreg(w):
-    return torch.nn.functional.soft_margin_loss(x.mv(w), y) + mu/2 * torch.norm(w, p=2)**2
+    return torch.nn.functional.soft_margin_loss(x @ w, y) + mu / 2 * w.square().sum()
 
 LOG_PATH = f"logs_{DATASET}"
 os.makedirs(LOG_PATH, exist_ok=True)

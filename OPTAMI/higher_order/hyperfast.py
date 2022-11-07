@@ -31,16 +31,24 @@ class Hyperfast(Optimizer):
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         L (float): estimated value of Lipschitz constant for the hessian (default: 1e+3)
-        order (int): order of the method (order = 1,2,3)
-        subsolver (Optimizer): method to solve the inner problem
+        order (int): order of the method (order = 1,2,3)TensorStepMethod (Optimizer): method to be accelerated;
+        for p=3 - BasicTensorMethod
+        for p=2 - CubicRegularizedNewton
+        for p=2 - GradientDescent
+        (default: None)
+        tensor_step_kwargs (dict): kwargs for TensorStepMethod (default: None)
+        subsolver (Optimizer): method to solve the inner problem (default: None)
+        subsolver_args (dict): arguments for the subsolver (default: None)
+        max_iters (int): number of the inner iterations of the subsolver to solve the inner problem (default: None)
     """
     MONOTONE = False
 
-    def __init__(self, params, L: float = 1e+3, order: int = 3,
+    def __init__(self, params, L: float = 1., order: int = 3,
                  TensorStepMethod: Optimizer = None, 
                  subsolver: Optimizer = None, subsolver_args: dict = None,
                  max_iters_ls: int = 50, max_iters: int = None, 
-                 verbose: bool = True, tensor_step_kwargs: dict = None):
+                 tensor_step_kwargs: dict = None,
+                 verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
@@ -54,6 +62,9 @@ class Hyperfast(Optimizer):
         self.max_iters = max_iters
         self.tensor_step_kwargs = tensor_step_kwargs
         self.verbose = verbose
+        self.testing = testing
+
+
 
 
     def step(self, closure):
@@ -84,13 +95,13 @@ class Hyperfast(Optimizer):
                     if order == 3:
                         self.tensor_step_method = OPTAMI.BasicTensorMethod(
                             params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                            subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                            subsolver_args=self.subsolver_args, max_iters=self.max_iters, testing=self.testing)
                     elif order == 2:
                         self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
                             params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                            subsolver_args=self.subsolver_args, max_iters=self.max_iters)
+                            subsolver_args=self.subsolver_args, max_iters=self.max_iters, testing=self.testing)
                     else:  # order = 1
-                        self.tensor_step_method = torch.optim.SGD(params, lr=1. / L)
+                        self.tensor_step_method = OPTAMI.GradientDescent(params, L=L, testing=self.testing)
                 else:
                     if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
                         warnings.warn("`TensorStepMethod` should be monotone!")

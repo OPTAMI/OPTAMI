@@ -22,8 +22,8 @@ class BasicTensorMethod(Optimizer):
     """
     MONOTONE = True
 
-    def __init__(self, params, L: float = 1e+2, subsolver: Optimizer = None, max_iters_outer: int = 50,
-                 subsolver_args: dict = None, max_iters: int = None, verbose: bool = True):
+    def __init__(self, params, L: float = 1., subsolver: Optimizer = None, max_iters_outer: int = 50,
+                 subsolver_args: dict = None, max_iters: int = None, verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
@@ -31,6 +31,7 @@ class BasicTensorMethod(Optimizer):
             L=L, subsolver=subsolver, max_iters_outer=max_iters_outer,
             subsolver_args=subsolver_args or {'lr': 1e-2}, max_iters=max_iters))
         self.verbose = verbose
+        self.testing = testing
 
     def _add_v(self, params, vector, alpha=1):
         with torch.no_grad():
@@ -76,7 +77,7 @@ class BasicTensorMethod(Optimizer):
                 with torch.no_grad():
                     D3xx = D3xx.to(torch.double)
                     Hx = Hx.to(torch.double)
-                    Lv3 = v_flat * (v_flat.norm().square() * L)
+                    Lv3 = v_flat * (v_flat.norm() ** 2 * L)
                     g = df.add(Hx).add(D3xx, alpha=0.5).add(Lv3)
 
                 if self._check_stopping_condition(closure, params, v, g.norm()):
@@ -107,8 +108,8 @@ def exact(L, c, T, U, tol=1e-10):
 
     tau_best = line_search.ray_line_search(
         dual,
-        middle_point=torch.tensor([2.]),
         left_point=torch.tensor([0.]),
+        middle_point=torch.tensor([2.]),
         eps=tol)
 
     invert = inv(T, L, tau_best)

@@ -30,7 +30,4 @@ jobs:
     - name: PyTest
       run: |
         pytest ./tests
-    - name: UniversalTest
-      run: |
-        ./tests/run_universal_tests.py
     
