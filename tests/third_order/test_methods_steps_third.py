@@ -1,9 +1,11 @@
 import json
 import torch
 import sys
+
 sys.path.append("./")
 import OPTAMI as opt
 import numpy as np
+
 
 def f_small_pow_4(x):
     return x.square().square().sum()
@@ -45,7 +47,7 @@ def test_steps():
                     x.requires_grad_()
                 else:
                     x = torch.tensor(problem["test_starting_point"]).requires_grad_()
-                optimizer = method([x], problem["L"], **outer_setup["config"])
+                optimizer = method([x], problem["L"], **outer_setup["config"], testing=True)
                 precision = max(problem["problem_precision"], outer_setup["algorithms_precision"])
                 iteration = problem["problem_iteration"] * outer_setup["algorithms_iteration_mul"]
                 min_solution = 1000000000.

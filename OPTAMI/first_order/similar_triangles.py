@@ -21,7 +21,7 @@ class SimilarTriangles(Optimizer):
     MONOTONE=False
 
     def __init__(self, params, L: float = 1e+2, is_adaptive: bool = True,
-                 max_adapt_iters: int = 10, zeta: float = 2., verbose: bool = True):
+                 max_adapt_iters: int = 10, zeta: float = 2., verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
@@ -29,6 +29,7 @@ class SimilarTriangles(Optimizer):
             L=L, is_adaptive=is_adaptive,
             max_adapt_iters=max_adapt_iters, zeta=zeta))
         self.verbose = verbose
+        self.testing = testing
 
     @torch.no_grad()
     def _check_relaxation(self, closure, params, fy, L):

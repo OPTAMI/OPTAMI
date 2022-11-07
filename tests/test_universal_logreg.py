@@ -41,7 +41,7 @@ def test_universal_logreg():
             return torch.nn.functional.soft_margin_loss(x @ w, y) + mu/2 * w.square().sum()
 
         w = torch.zeros(INPUT_SIZE).double().requires_grad_()
-        optimizer = Algorithm([w], L=L, verbose=False)
+        optimizer = Algorithm([w], L=L, verbose=False, testing=True)
         name = str(Algorithm).split('.')[-1][:-2]
 
         print(name)
