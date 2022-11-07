@@ -12,7 +12,6 @@ class CubicRegularizedNewton(Optimizer):
         Dmitry Vilensky-Pasechnyuk
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
-        is_adaptive (boolean): if False then method works with fixed L. If True then method tunes L adaptively (default: False)
         L (float): estimated value of Lipschitz constant of the Hessian
         subsolver (Optimizer): optimization method to solve the inner problem by gradient steps
         subsolver_args (dict): arguments for the subsolver such as a learning rate and others
@@ -21,9 +20,9 @@ class CubicRegularizedNewton(Optimizer):
     """
     MONOTONE = True
 
-    def __init__(self, params, L: float = 1e+2, subsolver: Optimizer = None,
+    def __init__(self, params, L: float = 1., subsolver: Optimizer = None,
                  subsolver_args: dict = None, max_iters: int = 100,
-                 rel_acc: float = 1e-1, verbose: bool = True):
+                 rel_acc: float = 1e-1, verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
@@ -33,6 +32,7 @@ class CubicRegularizedNewton(Optimizer):
             max_iters=max_iters, rel_acc=rel_acc))
 
         self.verbose = verbose
+        self.testing = testing
 
     def step(self, closure):
         """Performs a single optimization step.
@@ -50,7 +50,7 @@ class CubicRegularizedNewton(Optimizer):
             subsolver_args = group['subsolver_args']
 
             if subsolver is None:
-                x = exact(params, closure, L)
+                x = exact(params, closure, L, testing=self.testing)
             else:
                 is_satisfactory, x = iterative(
                     params, closure, L,
@@ -65,13 +65,13 @@ class CubicRegularizedNewton(Optimizer):
         return None
 
 
-def exact(params, closure, L, tol=1e-10):
+def exact(params, closure, L, delta=1e-8, testing=False):
     df = tuple_to_vec.tuple_to_vector(
         torch.autograd.grad(closure(), list(params), create_graph=True))
     H = derivatives.flat_hessian(df, list(params))
 
-    c = df.clone().detach().to(torch.double)
-    A = H.clone().detach().to(torch.double)
+    c = df.detach().to(torch.double)
+    A = H.detach().to(torch.double)
 
     if c.dim() != 1:
         raise ValueError(f"`c` must be a vector, but c = {c}")
@@ -88,19 +88,23 @@ def exact(params, closure, L, tol=1e-10):
     T, U = torch.linalg.eigh(A)
     ct = U.t().mv(c)
 
-    def inv(T, L, tau): return (T + L/2 * tau).reciprocal()
-    def dual(tau): return L/12 * tau.pow(3) + 1/2 * \
-        inv(T, L, tau).mul(ct.square()).sum()
+    def inv(T, L, tau):
+        return (T + L / 2 * tau).reciprocal()
+
+    def dual(tau):
+        return L / 12 * tau.pow(3) + 1 / 2 * \
+               inv(T, L, tau).mul(ct.square()).sum()
 
     tau_best = line_search.ray_line_search(
-        dual, eps=tol,
+        dual,
+        left_point=torch.tensor([0.]),
         middle_point=torch.tensor([2.]),
-        left_point=torch.tensor([0.]))
+        delta=delta)
 
     invert = inv(T, L, tau_best)
     x = -U.mv(invert.mul(ct).type_as(U))
 
-    if not (c + L/2 * x.norm() * x + A.mv(x)).abs().max().item() < 0.01:
+    if testing and (c + L / 2 * x.norm() * x + A.mv(x)).abs().max().item() >= 0.01:
         raise ValueError('obtained `x` is not optimal')
 
     return tuple_to_vec.rollup_vector(x, list(params))
