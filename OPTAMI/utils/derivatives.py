@@ -5,11 +5,14 @@ from . import tuple_to_vec
 # Return tuple format of hessian-vector-product
 def hvp_from_grad(grads_tuple, list_params, vec_tuple):
     # don't damage grads_tuple. Grads_tuple should be calculated with create_graph=True
+    return torch.autograd.grad(grads_tuple, list_params, grad_outputs=vec_tuple, retain_graph=True)
+
+def hvp_from_grad_old(grads_tuple, list_params, vec_tuple):
+    # don't damage grads_tuple. Grads_tuple should be calculated with create_graph=True
     dot = 0.
     for grad, vec in zip(grads_tuple, vec_tuple):
         dot += grad.mul(vec).sum()
     return torch.autograd.grad(dot, list_params, retain_graph=True)
-
 
 # Return tuple format of hessian-vector-product
 def hess_vec_prod(closure, list_params, vec_tuple):
