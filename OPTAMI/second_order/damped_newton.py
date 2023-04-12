@@ -24,7 +24,7 @@ https://arxiv.org/pdf/2211.00140.pdf
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         variant (str):
-        None - classical Damped Newton Method;
+        'Classic' - classical Damped Newton Method;
         'AIC' - Affine-Invariant Cubic Newton;
         'GradReg' - Gradient Regularized Newton (default: 'GradReg')
         alpha (float): step-size for Damped Newton Method (default: 1.)
@@ -62,7 +62,10 @@ https://arxiv.org/pdf/2211.00140.pdf
             subsolver = group['subsolver']
             g = torch.autograd.grad(closure(), list(params), create_graph=True)
 
-            if variant == 'GradReg':
+            if variant == 'Classic':
+                lambd = 0.
+                alpha = 1.
+            elif variant == 'GradReg':
                 g_norm = torch.sqrt(tuple_to_vec.tuple_norm_square(g))
                 lambd = torch.sqrt(L * g_norm)
                 alpha = 1.
