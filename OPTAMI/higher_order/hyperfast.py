@@ -51,13 +51,12 @@ class Hyperfast(Optimizer):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
-        super().__init__(params, dict(
-            L=L, max_iters_ls=max_iters_ls))
+        super().__init__(params, dict(L=L))
 
         self.verbose = verbose
         self.testing = testing
         if len(self.param_groups) != 1:
-            raise ValueError("Superfast doesn't support per-parameter options "
+            raise ValueError("Hyperfast doesn't support per-parameter options "
                              "(parameter groups)")
         group = self.param_groups[0]
         params = group['params']
@@ -67,6 +66,8 @@ class Hyperfast(Optimizer):
         state_common['A'] = 0.
 
         self.order = order
+        self.L = L
+        self.max_iters_ls = max_iters_ls
 
         self.tensor_step_method = step_definer(params=params, L=L, order=order,
                                                TensorStepMethod=TensorStepMethod, tensor_step_kwargs=tensor_step_kwargs,
@@ -77,6 +78,7 @@ class Hyperfast(Optimizer):
             state = self.state[p]
             state['x'] = p.detach().clone()
             state['y'] = state['x'].clone()
+            state['x_wave'] = state['x'].clone()
 
 
     def step(self, closure):
@@ -96,16 +98,13 @@ class Hyperfast(Optimizer):
         A = state_common['A']
         theta = state_common['theta']
 
-        L = group['L']
-        max_iters_ls = group['max_iters_ls']
-
         fac = math.factorial(self.order - 1)
         s = self.order/(self.order+1)
         m = (s + 0.5) / 2
         l, u = 0., 1.
         A_new = A + 0.
 
-        for _ in range(max_iters_ls):
+        for _ in range(self.max_iters_ls):
             A_new = A / theta
             a = A_new - A
 
@@ -127,7 +126,7 @@ class Hyperfast(Optimizer):
                     norm_squared += state['x_wave'].square().sum()
                 norm = norm_squared.pow((self.order-1)/2.)
 
-            H = 1.5 * L
+            H = 1.5 * self.L
             inequality = ((1-theta)**2 * A * H / theta) * norm / fac
 
             if A == 0:

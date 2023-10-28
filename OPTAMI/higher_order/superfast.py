@@ -53,6 +53,7 @@ class Superfast(Optimizer):
         state_common['k'] = 0
 
         self.order = order
+        self.L = L
 
         if a_step is None:
             a_step = (2 * order - 1) / (2 * (order + 1) * (2 * order + 1)) \
@@ -89,8 +90,6 @@ class Superfast(Optimizer):
 
         k = state_common['k']
 
-        L = group['L']
-
         alpha = (1. - 1 / (k + 1)) ** (self.order + 1)
 
         with torch.no_grad():
@@ -104,7 +103,7 @@ class Superfast(Optimizer):
         closure().backward()
 
         with torch.no_grad():
-            a = self.a_step * ((k + 1) ** (self.order + 1) - k ** (self.order + 1)) / L
+            a = self.a_step * ((k + 1) ** (self.order + 1) - k ** (self.order + 1)) / self.L
             for p in params:
                 state = self.state[p]
                 state['x'].zero_().add_(p)

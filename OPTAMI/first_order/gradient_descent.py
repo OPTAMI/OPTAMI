@@ -12,6 +12,7 @@ class GradientDescent(Optimizer):
         L (float): estimated value of Lipschitz constant of the gradient
     """
     MONOTONE = True
+    SKIP_TEST_LOGREG = False
 
     def __init__(self, params, L: float = 1., verbose: bool = True, testing: bool = False):
         if L <= 0:
@@ -34,10 +35,10 @@ class GradientDescent(Optimizer):
             params = group['params']
             L = group['L']
 
-            grad = torch.autograd.grad(closure(), params)
+            closure().backward()
 
             with torch.no_grad():
-                for g, p in zip(grad, params):
-                    p.sub_(g.div(L))
+                for p in params:
+                    p.sub_(p.grad / L)
         return None
 
