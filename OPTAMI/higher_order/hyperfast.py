@@ -1,10 +1,7 @@
 import math
 import torch
-import warnings
-
-import OPTAMI
-from OPTAMI.utils import tuple_to_vec
 from torch.optim.optimizer import Optimizer
+from OPTAMI.higher_order._supplemetrary import step_definer
 
 
 class Hyperfast(Optimizer):
@@ -40,31 +37,46 @@ class Hyperfast(Optimizer):
         subsolver (Optimizer): method to solve the inner problem (default: None)
         subsolver_args (dict): arguments for the subsolver (default: None)
         max_iters (int): number of the inner iterations of the subsolver to solve the inner problem (default: None)
+        max_iters_ls (int): number of the line-search iterations (default: 50)
     """
     MONOTONE = False
+    SKIP_TEST_LOGREG = False
 
     def __init__(self, params, L: float = 1., order: int = 3,
-                 TensorStepMethod: Optimizer = None, 
-                 subsolver: Optimizer = None, subsolver_args: dict = None,
-                 max_iters_ls: int = 50, max_iters: int = None, 
+                 TensorStepMethod: Optimizer = None,
                  tensor_step_kwargs: dict = None,
+                 subsolver: Optimizer = None, subsolver_args: dict = None,
+                max_iters: int = None, max_iters_ls: int = 50,
                  verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
         super().__init__(params, dict(
-            L=L, order=order, max_iters_ls=max_iters_ls))
+            L=L, max_iters_ls=max_iters_ls))
 
-        self.tensor_step_method = None
-        self.TensorStepMethod = TensorStepMethod
-        self.subsolver = subsolver
-        self.subsolver_args = subsolver_args
-        self.max_iters = max_iters
-        self.tensor_step_kwargs = tensor_step_kwargs
         self.verbose = verbose
         self.testing = testing
+        if len(self.param_groups) != 1:
+            raise ValueError("Superfast doesn't support per-parameter options "
+                             "(parameter groups)")
+        group = self.param_groups[0]
+        params = group['params']
+        p = next(iter(params))
+        state_common = self.state[p]
+        state_common['theta'] = 1.
+        state_common['A'] = 0.
 
+        self.order = order
 
+        self.tensor_step_method = step_definer(params=params, L=L, order=order,
+                                               TensorStepMethod=TensorStepMethod, tensor_step_kwargs=tensor_step_kwargs,
+                                               subsolver=subsolver, subsolver_args=subsolver_args,
+                                               max_iters=max_iters, verbose=verbose, testing=testing)
+
+        for p in params:
+            state = self.state[p]
+            state['x'] = p.detach().clone()
+            state['y'] = state['x'].clone()
 
 
     def step(self, closure):
@@ -74,101 +86,74 @@ class Hyperfast(Optimizer):
         """
         closure = torch.enable_grad()(closure)
 
-        for group in self.param_groups:
-            params = group['params']
-            p = next(iter(params))
-            state_common = self.state[p]
+        assert len(self.param_groups) == 1
+        group = self.param_groups[0]
+        params = group['params']
+        p = next(iter(params))
+        state_common = self.state[p]
 
-            if 'theta' not in state_common:
-                state_common['theta'] = 1.
-                state_common['A'] = 0.
-            
-            L = group['L']
-            A = state_common['A']
-            order = group['order']
-            theta = state_common['theta']
-            max_iters_ls = group['max_iters_ls']
-            fac = math.factorial(order - 1)
 
-            if self.tensor_step_method is None:
-                if self.TensorStepMethod is None:
-                    if order == 3:
-                        self.tensor_step_method = OPTAMI.BasicTensorMethod(
-                            params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                            subsolver_args=self.subsolver_args, max_iters=self.max_iters, testing=self.testing)
-                    elif order == 2:
-                        self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
-                            params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                            subsolver_args=self.subsolver_args, max_iters=self.max_iters, testing=self.testing)
-                    else:  # order = 1
-                        self.tensor_step_method = OPTAMI.GradientDescent(params, L=L, testing=self.testing)
-                else:
-                    if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
-                        warnings.warn("`TensorStepMethod` should be monotone!")
-                    self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
+        A = state_common['A']
+        theta = state_common['theta']
 
-            for p in group['params']:
+        L = group['L']
+        max_iters_ls = group['max_iters_ls']
+
+        fac = math.factorial(self.order - 1)
+        s = self.order/(self.order+1)
+        m = (s + 0.5) / 2
+        l, u = 0., 1.
+        A_new = A + 0.
+
+        for _ in range(max_iters_ls):
+            A_new = A / theta
+            a = A_new - A
+
+            for p in params:
                 state = self.state[p]
-
-                if ('x' not in state) or ('y' not in state):
-                    state['x'] = p.detach().clone()
-                    state['y'] = state['x'].clone()
-
-            A_new = A
-            s = order/(order+1)
-            m = (s + 0.5) / 2
-
-            l, u = 0., 1.
-            for _ in range(max_iters_ls):
-                A_new = A / theta
-                a = A_new - A
-
-                for p in group['params']:
-                    state = self.state[p]
-                    with torch.no_grad():
-                        p.zero_().add_(state['y'], alpha=theta).add_(state['x'], alpha=1-theta)
-                        state['x_wave'] = p.detach().clone()
-
-                self.tensor_step_method.step(closure)
-                self.zero_grad()
-                
-                norm = 0.
                 with torch.no_grad():
-                    for p in group['params']:
-                        state = self.state[p]
-                        state['x_wave'].sub_(p)
-                        norm += tuple_to_vec.tuple_norm_square(state['x_wave'])
-                norm = norm.sqrt().pow(order-1)
+                    state['x_wave'] = state['y'].mul(theta).add(state['x'], alpha=1-theta)
+                    p.zero_().add_(state['x_wave'])
 
-                H = 1.5 * L
-                inequality = ((1-theta)**2 * A * H / theta) * norm / fac
+            self.tensor_step_method.step(closure)
+            self.zero_grad()
 
-                if A == 0:
-                    a = fac / (2 * H * norm)
-                    A_new = A + a
-                    theta = 1.
-                    break
-                elif 0.5 <= inequality <= s:
-                    break
-                elif inequality < m:
-                    theta, u = (theta + l) / 2, theta
-                else:
-                    l, theta = theta, (u + theta) / 2
+
+            with torch.no_grad():
+                norm_squared = torch.tensor(0.)
+                for p in params:
+                    state = self.state[p]
+                    state['x_wave'].sub_(p)
+                    norm_squared += state['x_wave'].square().sum()
+                norm = norm_squared.pow((self.order-1)/2.)
+
+            H = 1.5 * L
+            inequality = ((1-theta)**2 * A * H / theta) * norm / fac
+
+            if A == 0:
+                a = fac / (2 * H * norm)
+                A_new = A + a
+                theta = 1.
+                break
+            elif 0.5 <= inequality <= s:
+                break
+            elif inequality < m:
+                theta, u = (theta + l) / 2, theta
             else:
-                if self.verbose:
-                    print('line-search failed')
+                l, theta = theta, (u + theta) / 2
 
-            with torch.no_grad():
-                for p in group['params']:
-                    state = self.state[p]
-                    state['y'] = p.detach().clone()
 
-            closure().backward()
+        with torch.no_grad():
+            for p in params:
+                state = self.state[p]
+                state['y'] = p.detach().clone()
 
-            with torch.no_grad():
-                for p in group['params']:
-                    state = self.state[p]
-                    state['x'].sub_(p.grad, alpha=a)
+        closure().backward()
+
+        with torch.no_grad():
+            for p in params:
+                state = self.state[p]
+                state['x'].sub_(p.grad, alpha=a)
 
             state_common['A'] = A_new
             state_common['theta'] = theta

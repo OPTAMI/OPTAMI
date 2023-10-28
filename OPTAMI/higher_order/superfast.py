@@ -62,9 +62,9 @@ class Superfast(Optimizer):
         # Step initialization: if order = 3 then Basic Tensor step,
         # if order = 2 then Cubic Newton, if order = 1 then Gradient Descent
         self.tensor_step_method = step_definer(params=params, L=L, order=order,
-                 TensorStepMethod=TensorStepMethod, tensor_step_kwargs=tensor_step_kwargs,
-                 subsolver=subsolver, subsolver_args=subsolver_args,
-                 max_iters=max_iters, verbose=verbose, testing=testing)
+                                               TensorStepMethod=TensorStepMethod, tensor_step_kwargs=tensor_step_kwargs,
+                                               subsolver=subsolver, subsolver_args=subsolver_args,
+                                               max_iters=max_iters, verbose=verbose, testing=testing)
 
         # Initialization of intermediate points
         for p in params:
