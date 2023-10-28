@@ -1,8 +1,7 @@
 import torch
 import math
-import warnings
 from torch.optim.optimizer import Optimizer
-import OPTAMI
+from OPTAMI.higher_order._supplemetrary import step_definer
 
 
 class Superfast(Optimizer):
@@ -60,23 +59,12 @@ class Superfast(Optimizer):
                      * math.factorial(order - 1) * 2 * (1 / (2 * order)) ** order
         self.a_step = a_step
 
-        # Step initialization
-        self.tensor_step_method = None
-        if TensorStepMethod is None:
-            if self.order == 3:
-                self.tensor_step_method = OPTAMI.BasicTensorMethod(
-                    params, L=L, subsolver=subsolver, verbose=self.verbose,
-                    subsolver_args=subsolver_args, max_iters=max_iters, testing=self.testing)
-            elif self.order == 2:
-                self.tensor_step_method = OPTAMI.CubicRegularizedNewton(
-                    params, L=L, subsolver=subsolver, verbose=self.verbose,
-                    subsolver_args=subsolver_args, max_iters=max_iters, testing=self.testing)
-            else:  # order = 1
-                self.tensor_step_method = OPTAMI.GradientDescent(params, L=L, testing=self.testing)
-        else:
-            if not hasattr(TensorStepMethod, 'MONOTONE') or not TensorStepMethod.MONOTONE:
-                warnings.warn("`TensorStepMethod` should be monotone!")
-            self.tensor_step_method = TensorStepMethod(params, **tensor_step_kwargs)
+        # Step initialization: if order = 3 then Basic Tensor step,
+        # if order = 2 then Cubic Newton, if order = 1 then Gradient Descent
+        self.tensor_step_method = step_definer(params=params, L=L, order=order,
+                 TensorStepMethod=TensorStepMethod, tensor_step_kwargs=tensor_step_kwargs,
+                 subsolver=subsolver, subsolver_args=subsolver_args,
+                 max_iters=max_iters, verbose=verbose, testing=testing)
 
         # Initialization of intermediate points
         for p in params:
