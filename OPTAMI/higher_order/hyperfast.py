@@ -46,7 +46,7 @@ class Hyperfast(Optimizer):
                  TensorStepMethod: Optimizer = None,
                  tensor_step_kwargs: dict = None,
                  subsolver: Optimizer = None, subsolver_args: dict = None,
-                max_iters: int = None, max_iters_ls: int = 50,
+                max_iters: int = None, max_iters_ls: int = 20,
                  verbose: bool = True, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
@@ -64,6 +64,9 @@ class Hyperfast(Optimizer):
         state_common = self.state[p]
         state_common['theta'] = 1.
         state_common['A'] = 0.
+        state_common['k'] = 0
+        state_common['average_iterations'] = 0
+        state_common['total_iterations'] = [0]
 
         self.order = order
         self.L = L
@@ -104,7 +107,10 @@ class Hyperfast(Optimizer):
         l, u = 0., 1.
         A_new = A + 0.
 
-        for _ in range(self.max_iters_ls):
+        it = 0
+        stop = False
+        while not stop and it < self.max_iters_ls:
+            it += 1
             A_new = A / theta
             a = A_new - A
 
@@ -133,9 +139,9 @@ class Hyperfast(Optimizer):
                 a = fac / (2 * H * norm)
                 A_new = A + a
                 theta = 1.
-                break
+                stop = True
             elif 0.5 <= inequality <= s:
-                break
+                stop = True
             elif inequality < m:
                 theta, u = (theta + l) / 2, theta
             else:
@@ -154,6 +160,10 @@ class Hyperfast(Optimizer):
                 state = self.state[p]
                 state['x'].sub_(p.grad, alpha=a)
 
+            state_common['total_iterations'].append(state_common['total_iterations'][-1] + it)
+            state_common['average_iterations'] = (state_common['average_iterations'] * state_common['k'] + it) / (
+                    state_common['k'] + 1)
+            state_common['k'] += 1
             state_common['A'] = A_new
             state_common['theta'] = theta
         return None
