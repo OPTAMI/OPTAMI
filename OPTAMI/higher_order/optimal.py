@@ -33,7 +33,7 @@ class Optimal(Optimizer):
     def __init__(self, params, L: float = 1., eta0: float = 0., sigma: float = 0.5, order: int = 3,
                  TensorStepMethod: Optimizer = None, tensor_step_kwargs: dict = None,
                  subsolver: Optimizer = None, subsolver_args: dict = None,
-                 max_iters: int = None, max_iters_ls: int = 20, verbose: bool = True, testing: bool = False):
+                 max_iters: int = None, max_iters_ls: int = 20, verbose: bool = False, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 

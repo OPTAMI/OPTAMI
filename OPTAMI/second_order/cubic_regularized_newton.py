@@ -19,10 +19,11 @@ class CubicRegularizedNewton(Optimizer):
         rel_acc (float): relative stopping criterion for the inner problem
     """
     MONOTONE = True
+    SKIP_TEST_LOGREG = False
 
     def __init__(self, params, L: float = 1., subsolver: Optimizer = None,
                  subsolver_args: dict = None, max_iters: int = 100,
-                 rel_acc: float = 1e-1, verbose: bool = True, testing: bool = False):
+                 rel_acc: float = 1e-1, verbose: bool = False, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 

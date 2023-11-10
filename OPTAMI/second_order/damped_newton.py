@@ -33,6 +33,7 @@ https://arxiv.org/pdf/2211.00140.pdf
         subsolver (Optimizer): optimization method to solve the inner problem by gradient steps (default: None)
     """
     MONOTONE = True
+    SKIP_TEST_LOGREG = False
 
     def __init__(self, params, variant: str = 'GradReg', alpha: float = 1., L: float = 1.,
                  lambd: float = 0., subsolver: Optimizer = None, verbose: bool = True, testing: bool = False):
