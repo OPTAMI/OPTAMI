@@ -1,9 +1,7 @@
 from torch.optim.optimizer import Optimizer
 from OPTAMI.utils import tuple_to_vec
-import warnings
-import OPTAMI
 import torch
-
+from OPTAMI.higher_order._supplemetrary import step_definer
 
 class ProxPointSS(Optimizer):
     """Implements Superfast Second-Order Method.
@@ -17,8 +15,9 @@ class ProxPointSS(Optimizer):
         L (float): estimated value of Lipschitz constant for the hessian (default: 1e+3)
     """
     MONOTONE = False
+    SKIP_TEST_LOGREG = False
 
-    def __init__(self, params, L: float = 1e+3, approx: float = 16., 
+    def __init__(self, params, L: float = 1e+3, approx: float = 16., order: int = 3,
                  TensorStepMethod: Optimizer = None, tensor_step_kwargs: dict = None,
                  subsolver: Optimizer = None, subsolver_args: dict = None,
                  max_iters: int = None, verbose: bool = True, testing: bool = False):
@@ -30,16 +29,15 @@ class ProxPointSS(Optimizer):
             raise ValueError("Superfast doesn't support per-parameter options "
                              "(parameter groups)")
 
-        self.TensorStepMethod = TensorStepMethod
-        self.subsolver = subsolver
-        self.subsolver_args = subsolver_args
-        self.max_iters = max_iters
-        self.tensor_step_kwargs = tensor_step_kwargs
-        self.tensor_step_method = None
+
 
         self.verbose = verbose
         self.testing = testing
 
+        self.tensor_step_method = step_definer(params=params, L=L, order=order,
+                                               TensorStepMethod=TensorStepMethod, tensor_step_kwargs=tensor_step_kwargs,
+                                               subsolver=subsolver, subsolver_args=subsolver_args,
+                                               max_iters=max_iters, verbose=verbose, testing=testing)
 
     def step(self, closure):
         """Performs a single optimization step.
@@ -54,15 +52,6 @@ class ProxPointSS(Optimizer):
         approx = group['approx']
         L = group['L']
 
-        if self.tensor_step_method is None:
-            if self.TensorStepMethod is None:
-                self.tensor_step_method = OPTAMI.BasicTensorMethod(
-                    params, L=L, subsolver=self.subsolver, verbose=self.verbose,
-                    subsolver_args=self.subsolver_args, max_iters=self.max_iters, testing=self.testing)
-            else:
-                if not hasattr(self.TensorStepMethod, 'MONOTONE') or not self.TensorStepMethod.MONOTONE:
-                    warnings.warn("`TensorStepMethod` should be monotone!")
-                self.tensor_step_method = self.TensorStepMethod(params, **self.tensor_step_kwargs)
 
         p = next(iter(params))
         state_common = self.state[p]

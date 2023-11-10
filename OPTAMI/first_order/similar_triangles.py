@@ -19,6 +19,7 @@ class SimilarTriangles(Optimizer):
         verbose (bool): flag to control additional logs, here - on adaptation of L (default: True)
     """
     MONOTONE=False
+    SKIP_TEST_LOGREG = False
 
     def __init__(self, params, L: float = 1e+2, is_adaptive: bool = True,
                  max_adapt_iters: int = 10, zeta: float = 2., verbose: bool = True, testing: bool = False):

@@ -33,64 +33,65 @@ def test_universal_logreg():
 
     for classname in filter(lambda attr: attr[0].isupper(), dir(OPTAMI)):
         Algorithm = getattr(OPTAMI, classname)
-        torch.manual_seed(777)
+        if not Algorithm.SKIP_TEST_LOGREG:
+            torch.manual_seed(42)
 
-        failed_counter = 0
+            failed_counter = 0
 
-        def logreg(w):
-            return torch.nn.functional.soft_margin_loss(x @ w, y) + mu/2 * w.square().sum()
+            def logreg(w):
+                return torch.nn.functional.soft_margin_loss(x @ w, y) + mu/2 * w.square().sum()
 
-        w = torch.zeros(INPUT_SIZE).double().requires_grad_()
-        optimizer = Algorithm([w], L=L, verbose=False, testing=True)
-        name = str(Algorithm).split('.')[-1][:-2]
+            w = torch.zeros(INPUT_SIZE).double().requires_grad_()
+            optimizer = Algorithm([w], L=L, verbose=False, testing=True)
+            name = str(Algorithm).split('.')[-1][:-2]
 
-        print(name)
-        losses, times, grads = func_fit(optimizer, EPOCHS, logreg, w)
-        print()
+            print(name)
+            losses, times, grads = func_fit(optimizer, EPOCHS, logreg, w)
+            print()
 
 
-        if Algorithm.MONOTONE:
-            print(f"test_monotonicity ({classname}) ... ", end="")
-            if all(x >= y for x, y in zip(losses, losses[1:])):
+            if Algorithm.MONOTONE:
+                print(f"test_monotonicity ({classname}) ... ", end="")
+                if all(x >= y for x, y in zip(losses, losses[1:])):
+                    print("ok")
+                else:
+                    print("FAIL")
+                    failed_counter += 1
+
+            print(f"test_obtained_solution ({classname}) ... ", end="")
+            if losses[-1] < F_STAR + EPSILON:
                 print("ok")
             else:
                 print("FAIL")
                 failed_counter += 1
 
-        print(f"test_obtained_solution ({classname}) ... ", end="")
-        if losses[-1] < F_STAR + EPSILON:
-            print("ok")
-        else:
-            print("FAIL")
-            failed_counter += 1
+            print(f"test_divergence ({classname}) ... ", end="")
+            try:
+                if next(filter(lambda i: all(x > F_STAR + EPSILON_MAX for x in losses[i:]), range(len(losses)))) / len(losses) > 0.9:
+                    print("ok")
+                else:
+                    print("FAIL")
+                    print(next(filter(lambda i: all(x > F_STAR + EPSILON_MAX for x in losses[i:]), range(len(losses)))) / len(losses))
+                    failed_counter += 1
+            except StopIteration:
+                print("ok")
 
-        print(f"test_divergence ({classname}) ... ", end="")
-        try:
-            if next(filter(lambda i: all(x > F_STAR + EPSILON_MAX for x in losses[i:]), range(len(losses)))) / len(losses) > 0.9:
+            print(f"test_infinities ({classname}) ... ", end="")
+            if not any(x == float('+inf') or x == float('-inf') for x in losses):
                 print("ok")
             else:
                 print("FAIL")
-                print(next(filter(lambda i: all(x > F_STAR + EPSILON_MAX for x in losses[i:]), range(len(losses)))) / len(losses))
                 failed_counter += 1
-        except StopIteration:
-            print("ok")
 
-        print(f"test_infinities ({classname}) ... ", end="")
-        if not any(x == float('+inf') or x == float('-inf') for x in losses):
-            print("ok")
-        else:
-            print("FAIL")
-            failed_counter += 1
+            print(f"test_none ({classname}) ... ", end="")
+            if not any(x is None for x in losses):
+                print("ok")
+            else:
+                print("FAIL")
+                failed_counter += 1
 
-        print(f"test_none ({classname}) ... ", end="")
-        if not any(x is None for x in losses):
-            print("ok")
-        else:
-            print("FAIL")
-            failed_counter += 1
+            print("\n----------------------------------------------------------------------\n")
+            print(f"OK" if failed_counter == 0 else f"FAILED (failures={failed_counter})")
 
-        print("\n----------------------------------------------------------------------\n")
-        print(f"OK" if failed_counter == 0 else f"FAILED (failures={failed_counter})")
-
-        if failed_counter > 0:
-            raise Exception(f"Universal tests failed with {failed_counter} failures")
+            if failed_counter > 0:
+                raise Exception(f"Universal tests failed with {failed_counter} failures")

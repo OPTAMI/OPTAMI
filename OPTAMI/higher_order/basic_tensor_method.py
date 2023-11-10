@@ -21,7 +21,7 @@ class BasicTensorMethod(Optimizer):
         subsolver_args (dict) : arguments for `subsolver`
     """
     MONOTONE = True
-
+    SKIP_TEST_LOGREG = False
     def __init__(self, params, L: float = 1., subsolver: Optimizer = None, max_iters_outer: int = 50,
                  subsolver_args: dict = None, max_iters: int = None, verbose: bool = True, testing: bool = False):
         if L <= 0:

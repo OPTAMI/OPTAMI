@@ -1,18 +1,20 @@
 import torch
 import OPTAMI as opt
 import time
-from OPTAMI.utils import tuple_to_vec, derivatives, line_search
+from OPTAMI.utils import derivatives
 
 
-def func_fit(optimizer, iter_num, func, x, *args):
+def func_fit(optimizer, iter_num, func, x, precision:float = 1e-10, **kwargs):
     losses = []
     norm_grads = []
     time_steps = [0.]
     def closure():
         optimizer.zero_grad()
-        return func(x, *args)
-
-    for j in range(iter_num):
+        return func(x, **kwargs)
+    iters = 0
+    func_loss_prev = 1e+10
+    flag = True
+    while iters < iter_num and flag:
         func_loss = closure()
         losses.append(func_loss.item())
         norm_grad = torch.autograd.grad(func_loss, [x])[0].square().sum().item()
@@ -20,6 +22,10 @@ def func_fit(optimizer, iter_num, func, x, *args):
         step_timer = time.time()
         optimizer.step(closure)
         time_steps.append(time.time()-step_timer+time_steps[-1])
+        if (func_loss_prev - func_loss).abs() < precision:
+            flag = False
+        func_loss_prev = func_loss + 0.
+        iters += 1
 
     func_loss = closure()
     norm_grad = torch.autograd.grad(func_loss, [x])[0].square().sum().item()
