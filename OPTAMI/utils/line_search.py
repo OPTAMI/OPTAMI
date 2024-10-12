@@ -5,9 +5,6 @@ import math
 def segment_search_gold(g, left_point, right_point, eps=1e-9, delta=1e-6):
     """Golden-section segment search on the segment from the left_point to the right_point.
     https://en.wikipedia.org/wiki/Golden-section_search
-    Contributors:
-        Dmitry Kamzolov
-        Dmitry Vilensky-Pasechnyuk
     Arguments:
         g (function): one-dimensional function to optimize, g(x)
         left_point (float or Tensor): left point of the segment for search, a for [a,b]
@@ -51,9 +48,6 @@ def segment_search_gold(g, left_point, right_point, eps=1e-9, delta=1e-6):
 def segment_search_ternary(g, left_point, right_point, eps=1e-9, delta=1e-6):
     """Ternary segment search on the segment from the left_point to the right_point.
     https://en.wikipedia.org/wiki/Ternary_search
-    Contributors:
-        Dmitry Kamzolov
-        Dmitry Vilensky-Pasechnyuk
     Arguments:
         g (function): one-dimensional function to optimize, g(x)
         left_point (float or Tensor): left point of the segment for search, a for [a,b]
@@ -91,9 +85,6 @@ def segment_search_ternary(g, left_point, right_point, eps=1e-9, delta=1e-6):
 
 def ray_line_search(g, left_point, middle_point, eps=1e-8, delta=1e-6, segment='gold'):
     """Ray search on the ray from the left_point to the direction of the middle_point
-    Contributors:
-        Dmitry Kamzolov
-        Dmitry Vilensky-Pasechnyuk
     Arguments:
         g (function): one-dimensional function to optimize, g(x)
         left_point (float or Tensor): left point of the ray for search, a for [a,b,+inf)
@@ -108,7 +99,6 @@ def ray_line_search(g, left_point, middle_point, eps=1e-8, delta=1e-6, segment='
         segment_search = segment_search_ternary
     else:
         segment_search = segment_search_gold
-
     g_mid = g(middle_point)
     g_left = g(left_point)
     if g_mid >= g_left:
@@ -134,8 +124,6 @@ def ray_line_search(g, left_point, middle_point, eps=1e-8, delta=1e-6, segment='
 
 def check_left_point_(g, left_point, right_point, delta=1e-6):
     """Auxilary procedure for checking that the solution of segment search is not at the left point
-    Contributors:
-        Dmitry Kamzolov
     """
     iter = 0
     x1 = (2 * left_point + right_point) / 3.
@@ -149,3 +137,5 @@ def check_left_point_(g, left_point, right_point, delta=1e-6):
         if iter == 10:
             return left_point
     return right_point
+
+

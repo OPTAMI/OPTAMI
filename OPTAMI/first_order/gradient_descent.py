@@ -4,15 +4,17 @@ from torch.optim.optimizer import Optimizer
 
 class GradientDescent(Optimizer):
     """Implements Gradient Descent
+
     Contributors:
         Dmitry Kamzolov
         Dmitry Vilensky-Pasechnyuk
+
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         L (float): estimated value of Lipschitz constant of the gradient
     """
     MONOTONE = True
-    SKIP_TEST_LOGREG = False
+    ORDER = 1
 
     def __init__(self, params, L: float = 1., verbose: bool = True, testing: bool = False):
         if L <= 0:
