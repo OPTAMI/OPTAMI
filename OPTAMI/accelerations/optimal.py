@@ -179,4 +179,5 @@ class Optimal(Optimizer):
         self.total_iterations.append(self.total_iterations[-1] + inner_iteration)
         self.iteration += 1
         if self.verbose and self.iteration % 10 == 0:
-            print("Iteration",
+            print("Iteration", self.iteration, "average iterations", self.average_iterations)
+        return None

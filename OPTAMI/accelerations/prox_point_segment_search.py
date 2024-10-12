@@ -212,4 +212,6 @@ class ProxPointSegmentSearch(Optimizer):
 
         self.A += a
         self.average_iterations = (self.average_iterations * self.iteration + inner_iteration) / (self.iteration + 1)
-        self.total_iterations.append(self.total_iterations[-1] + in
+        self.total_iterations.append(self.total_iterations[-1] + inner_iteration)
+        self.iteration += 1
+        return None
