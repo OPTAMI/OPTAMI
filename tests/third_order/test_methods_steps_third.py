@@ -2,6 +2,8 @@ import json
 import torch
 import OPTAMI as opt
 from numpy import ndim
+import sys
+sys.path.append("./")
 torch.set_default_dtype(torch.float64)
 
 def f_small_pow_4(x):

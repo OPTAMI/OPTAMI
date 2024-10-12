@@ -30,7 +30,7 @@ def test_universal_logreg():
 
     if DATASET != "a9a":
         raise AttributeError(f"dataset {DATASET} undefined")
-    dataset = load_svmlight_file(f'../data/LibSVM/{DATASET}.txt')
+    dataset = load_svmlight_file(f'./data/LibSVM/{DATASET}.txt')
     x = torch.tensor(normalize(dataset[0].toarray(), norm='l2', axis=1))
     y = torch.tensor(dataset[1])
     INPUT_SIZE = x.size()[1]
