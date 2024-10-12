@@ -124,4 +124,4 @@ class SimilarTriangles(Optimizer):
 
             state_common['A'] = A + a
             state_common['L'] = L
-   
+        return None
