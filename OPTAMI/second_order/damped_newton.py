@@ -11,18 +11,19 @@ class DampedNewton(Optimizer):
     B) Affine-Invariant Cubic Newton, (variant = 'AIC') from
     "A Damped Newton Method Achieves Global O(1/k^2) and Local Quadratic Convergence Rate"
     by Slavomír Hanzely, Dmitry Kamzolov, Dmitry Pasechnyuk, Alexander Gasnikov,
-    Peter Richtárik, and Martin Takáč
-https://arxiv.org/pdf/2211.00140.pdf
+    Peter Richtárik, and Martin Takáč. 2022. Advances in Neural Information Processing Systems, 35, pp.25320-25334.
+https://proceedings.neurips.cc/paper_files/paper/2022/hash/a1f0c0cd6caaa4863af5f12608edf63e-Abstract-Conference.html
 
     C) Gradient Regularized Newton (variant = 'GradReg') from
-    1) "Regularized Newton Method with Global Convergence O(1/k^2)" by Konstantin Mishchenko
-    https://arxiv.org/abs/2112.02089
-    2) "Gradient Regularization of Newton Method with Bregman Distances" by Nikita Doikov, Yurii Nesterov
-    https://arxiv.org/abs/2112.02952
+    1) "Regularized Newton Method with Global $\mathcal O\left (\frac {1}{k^ 2}\right) $ Convergence." by Konstantin Mishchenko. 2023. SIAM Journal on Optimization, 33(3), pp.1440-1462.
+    https://doi.org/10.1137/22M1488752
+    2) "Gradient Regularization of Newton Method with Bregman Distances" by Nikita Doikov, Yurii Nesterov. 2024. Mathematical Programming, 204(1), pp.1-25.
+    https://doi.org/10.1007/s10107-023-01943-7
 
     Contributors:
         Dmitry Kamzolov
         Dmitry Vilensky-Pasechnyuk
+
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         variant (str):

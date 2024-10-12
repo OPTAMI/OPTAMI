@@ -5,8 +5,9 @@ from OPTAMI.utils import tuple_to_vec, derivatives, line_search, subproblem_solv
 class CubicRegularizedNewton(Optimizer):
     """Implements Cubic Regularized Newton Method.
 
-    It had been proposed in `Cubic regularization of Newton method and its global performance`
-    https://link.springer.com/content/pdf/10.1007/s10107-006-0706-8.pdf
+    It was proposed in `Cubic regularization of Newton method and its global performance`
+    by Yurii Nesterov and Boris Polyak. 2006. Mathematical Programming. 108, pp. 177–205.
+    https://doi.org/10.1007/s10107-006-0706-8
 
     Contributors:
         Dmitry Kamzolov

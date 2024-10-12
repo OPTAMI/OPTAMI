@@ -7,7 +7,8 @@ from ._supplemetrary import step_definer
 class Optimal(Optimizer):
     """Implements Optimal Tensor Method.
 
-     It was proposed by Dmitry Kovalev  and Alexander Gasnikov in "The First Optimal Acceleration of High-Order Methods in Smooth Convex Optimization"
+     It was proposed in "The First Optimal Acceleration of High-Order Methods in Smooth Convex Optimization"
+     by Dmitry Kovalev  and Alexander Gasnikov. 2022. Advances in Neural Information Processing Systems, 35, pp.35339-35351.
      https://proceedings.neurips.cc/paper_files/paper/2022/hash/e56f394bbd4f0ec81393d767caa5a31b-Abstract-Conference.html
 
     Contributors:

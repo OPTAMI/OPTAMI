@@ -5,12 +5,14 @@ from ._supplemetrary import step_definer
 
 
 class NesterovAcceleration(Optimizer):
-    """Implements Inexact Accelerated Tensor Method.
+    """Implements Nesterov Accelerated Tensor Method.
 
-     Exact version was proposed by Yu.Nesterov in "Implementable tensor methods in unconstrained convex optimization"
-     https://doi.org/10.1007/s10107-019-01449-1
-     Detailed inexact version was proposed be Yu.Nesterov in "Superfast Second-Order Methods for Unconstrained Convex Optimization"
-     https://doi.org/10.1007/s10957-021-01930-y
+     Exact version was proposed in "Implementable Tensor Methods in Unconstrained Convex Optimization." by Yu.Nesterov.
+    2021. Mathematical Programming, 186, pp.157-183.
+    https://doi.org/10.1007/s10107-019-01449-1
+    Detailed inexact version was proposed in "Superfast Second-Order Methods for Unconstrained Convex Optimization" by Yu.Nesterov.
+    2021. Journal of Optimization Theory and Applications, 191, pp.1-30.
+    https://doi.org/10.1007/s10957-021-01930-y
 
     Contributors:
         Dmitry Kamzolov

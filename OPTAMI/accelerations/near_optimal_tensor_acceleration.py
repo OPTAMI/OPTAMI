@@ -5,20 +5,20 @@ from ._supplemetrary import step_definer
 
 
 class NearOptimalAcceleration(Optimizer):
-    """Implements Inexact Near-optimal Accelerated Tensor Method.
+    """Implements Near-Optimal Accelerated Tensor Method.
 
     Exact version was proposed by Bubeck, S., Jiang, Q., Lee, Y.T., Li, Y. and Sidford, A., 2019.
-    "Near-optimal method for highly smooth convex optimization." In Conference on Learning Theory (pp. 492-507). PMLR.
+    "Near-Optimal Method for Highly Smooth Convex Optimization." In Conference on Learning Theory (pp. 492-507). PMLR.
     https://proceedings.mlr.press/v99/bubeck19a.html
     and
     Gasnikov, A., Dvurechensky, P., Gorbunov, E., Vorontsova, E., Selikhanovych, D., Uribe, C.A.,
     Jiang, B., Wang, H., Zhang, S., Bubeck, S. and Jiang, Q., 2019.
-    "Near optimal methods for minimizing convex functions with lipschitz $ p $-th derivatives."
+    "Near-Optimal Methods for Minimizing Convex Functions with Lipschitz $p$-th Derivatives."
     In Conference on Learning Theory (pp. 1392-1393). PMLR.
     https://proceedings.mlr.press/v99/gasnikov19b.html
 
     Inexact version was proposed by Kamzolov D., 2020.
-    "Near-optimal hyperfast second-order method for convex optimization."
+    "Near-Optimal Hyperfast Second-order Method for Convex Optimization."
     In International Conference on Mathematical Optimization Theory and Operations Research (pp. 167-178). Springer, Cham.
     https://doi.org/10.1007/978-3-030-58657-7_15
 

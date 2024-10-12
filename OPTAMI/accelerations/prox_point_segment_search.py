@@ -5,7 +5,8 @@ from ._supplemetrary import step_definer
 class ProxPointSegmentSearch(Optimizer):
     """Implements Near-Optimal Proximal-Point Acceleration Method with Segment Search.
 
-     Method was proposed by Yu.Nesterov in "Inexact High-Order Proximal-Point Methods with Auxiliary Search Procedure"
+     Method was proposed in "Inexact High-Order Proximal-Point Methods with Auxiliary Search Procedure" by Yu.Nesterov.
+     2021. SIAM Journal on Optimization, 31(4), pp.2807-2828.
      https://doi.org/10.1137/20M134705X
 
     Contributors:

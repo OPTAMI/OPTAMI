@@ -7,9 +7,11 @@ from OPTAMI.utils import tuple_to_vec, derivatives, line_search
 class BasicTensorMethod(Optimizer):
     """Implements Inexact Third-order Basic Tensor Method with Bregman Distance Gradient Method as a subsolver.
 
-    Exact version was proposed by Yu.Nesterov in "Implementable tensor methods in unconstrained convex optimization"
+    Exact version was proposed in "Implementable Tensor Methods in Unconstrained Convex Optimization." by Yu.Nesterov.
+    2021. Mathematical Programming, 186, pp.157-183.
     https://doi.org/10.1007/s10107-019-01449-1
-    Detailed inexact version was proposed be Yu.Nesterov in "Superfast Second-Order Methods for Unconstrained Convex Optimization"
+    Detailed inexact version was proposed in "Superfast Second-Order Methods for Unconstrained Convex Optimization" by Yu.Nesterov.
+    2021. Journal of Optimization Theory and Applications, 191, pp.1-30.
     https://doi.org/10.1007/s10957-021-01930-y (formula 21)
 
     Arguments:
