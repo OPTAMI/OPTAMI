@@ -5,19 +5,17 @@
 - [OPTAMI: OPTimization for Applied Mathematics and Informatics](#optami-optimization-for-applied-mathematics-and-informatics)
   - [Table of Contents](#table-of-contents)
   - [1. About](#1-about)
-  - [2. Supported algorithms](#2-supported-algorithms)
-    - [2.1 First-order methods](#21-first-order-methods)
-    - [2.2 Second-order methods](#22-second-order-methods)
-    - [2.3 Third-order methods](#23-third-order-methods)
-    - [2.4 Accelerated envelopes](#24-accelerated-envelopes)
+  - [2. Supported Algorithms](#2-supported-algorithms)
+    - [2.1 First-order Methods](#21-first-order-methods)
+    - [2.2 Second-order Methods](#22-second-order-methods)
+    - [2.4 Accelerated Envelopes](#23-accelerated-envelopes)
   - [3. Citation](#3-citation)
-  - [4. For contributors](#4-for-contributors)
-    - [4.1 Criteria for contributed algorithms](#41-criteria-for-contributed-algorithms)
-    - [4.2 Recommendations for contributed algorithms](#42-recommendations-for-contributed-algorithms)
-  - [5. Basic tests](#5-basic-tests)
-    - [5.1 Unit tests](#51-unit-tests)
-    - [5.2 Universal tests](#52-universal-tests)
-    - [5.3 Performance tests](#53-performance-tests)
+  - [4. For Contributors](#4-for-contributors)
+    - [4.1 Criteria for Contributed Algorithms](#41-criteria-for-contributed-algorithms)
+    - [4.2 Recommendations for Contributed Algorithms](#42-recommendations-for-contributed-algorithms)
+  - [5. Basic Tests](#5-basic-tests)
+    - [5.1 Unit Tests](#51-unit-tests)
+    - [5.2 Universal Tests](#52-universal-tests)
   - [6. Rights](#6-rights)
 
 
@@ -25,60 +23,60 @@
 
 This package is dedicated to second and high-order optimization methods. All the methods can be used similarly to standard PyTorch optimizers.
 
-## 2. Supported algorithms
+## 2. Supported Algorithms
 
 Although the library is primarily focused on second-order optimization methods, we call contributors to commit methods of any order, and also already provide some of first-order methods in this library. Below we list all the currently supported algorithms divided into categories by their type and order, with the links on their source papers and/or their wiki pages.
 
 ### 2.1 First-order Methods
 
-* Gradient Descent
+* **Gradient Descent**
 
 
-* Similar Triangles Method
+* **Similar Triangles Method**
 
    _Gasnikov, A. and Nesterov, Y._ 2018. "Universal Method for Stochastic Composite Optimization Problems." Comput. Math. and Math. Phys. 58, pp.48–64. https://doi.org/10.1134/S0965542518010050
 
 ### 2.2 Second-order Methods
-* Damped Newton Method
+* **Damped Newton Method**
 
 
-* Cubic Regularized Newton Method
+* **Cubic Regularized Newton Method**
 
    _Nesterov, Y. and Polyak, B._ 2006. "Cubic Regularization of Newton Method and its Global Performance." Mathematical Programming. 108, pp. 177–205. https://doi.org/10.1007/s10107-006-0706-8
 
 
-* Affine-Invariant Cubic Newton Method
+* **Affine-Invariant Cubic Newton Method**
 
   _Hanzely, S., Kamzolov, D., Pasechnyuk, D., Gasnikov, A., Richtárik, P. and Takác, M._, 2022. "A Damped Newton Method Achieves Global $\mathcal O\left (\frac {1}{k^ 2}\right) $ and Local Quadratic Convergence Rate." Advances in Neural Information Processing Systems, 35, pp.25320-25334. https://proceedings.neurips.cc/paper_files/paper/2022/hash/a1f0c0cd6caaa4863af5f12608edf63e-Abstract-Conference.html
 
 
-* Gradient Regularized Newton Method
+* **Gradient Regularized Newton Method**
 
    _Mishchenko, K._, 2023. "Regularized Newton Method with Global $\mathcal O\left (\frac {1}{k^ 2}\right) $ Convergence." SIAM Journal on Optimization, 33(3), pp.1440-1462. https://doi.org/10.1137/22M1488752
     
     _Doikov, N. and Nesterov, Y._, 2024. "Gradient Regularization of Newton Method with Bregman Distances." Mathematical Programming, 204(1), pp.1-25. https://doi.org/10.1007/s10107-023-01943-7
 
 
-* Basic Tensor Method (with Bregman Distance Gradient Method for $p = 3$)
+* **Basic Tensor Method** (with Bregman Distance Gradient Method for $p = 3$)
 
    _Nesterov, Y._ 2021. "Implementable Tensor Methods in Unconstrained Convex Optimization." Mathematical Programming, 186, pp.157-183. https://doi.org/10.1007/s10107-019-01449-1
 
   _Nesterov, Y._ 2021. "Superfast Second-Order Methods for Unconstrained Convex Optimization." Journal of Optimization Theory and Applications, 191, pp.1-30. https://doi.org/10.1007/s10957-021-01930-y
 
-### 2.3 Accelerated Techniques
-* Nesterov Accelerated Tensor Method
+### 2.3 Accelerated Envelopes
+* **Nesterov Accelerated Tensor Method**
 
   _Nesterov, Y._ 2021. "Implementable Tensor Methods in Unconstrained Convex Optimization." Mathematical Programming, 186, pp.157-183. https://doi.org/10.1007/s10107-019-01449-1
 
   _Nesterov, Y._ 2021. "Superfast Second-Order Methods for Unconstrained Convex Optimization." Journal of Optimization Theory and Applications, 191, pp.1-30. https://doi.org/10.1007/s10957-021-01930-y
 
 
-* Nesterov Accelerated Tensor Method with A-Adaptation (NATA)
+* **Nesterov Accelerated Tensor Method with A-Adaptation (NATA)**
 
   _Kamzolov, D., Pasechnyuk, D., Agafonov, A., Gasnikov, A. and Takáč, M._ 2024. "OPTAMI: Global Superlinear Convergence of High-order Methods."  https://arxiv.org/abs/2410.04083
 
 
-* Near-Optimal Accelerated Tensor Method
+* **Near-Optimal Accelerated Tensor Method**
 
   _Bubeck, S., Jiang, Q., Lee, Y.T., Li, Y. and Sidford, A._ 2019. "Near-Optimal Method for Highly Smooth Convex Optimization." In Conference on Learning Theory, pp. 492-507. PMLR. https://proceedings.mlr.press/v99/bubeck19a.html
 
@@ -87,12 +85,12 @@ Although the library is primarily focused on second-order optimization methods, 
    _Kamzolov, D._ 2020. "Near-Optimal Hyperfast Second-order Method for Convex Optimization." International Conference on Mathematical Optimization Theory and Operations Research, pp. 167–178. https://doi.org/10.1007/978-3-030-58657-7_15
 
 
-* Near-Optimal Proximal-Point Acceleration Method with Segment Search
+* **Near-Optimal Proximal-Point Acceleration Method with Segment Search**
 
    _Nesterov, Y._ 2021. "Inexact High-Order Proximal-Point Methods with Auxiliary Search Procedure." SIAM Journal on Optimization, 31(4), pp.2807-2828. https://doi.org/10.1137/20M134705X
 
 
-* Optimal Tensor Method
+* **Optimal Tensor Method**
 
    _Kovalev, D., Gasnikov, A._ 2022. "The First Optimal Acceleration of High-Order Methods in Smooth Convex Optimization." Advances in Neural Information Processing Systems, 35, pp.35339-35351. https://proceedings.neurips.cc/paper_files/paper/2022/hash/e56f394bbd4f0ec81393d767caa5a31b-Abstract-Conference.html
 
