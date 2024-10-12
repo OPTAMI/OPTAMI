@@ -1,29 +1,33 @@
 import torch
 from torch.optim.optimizer import Optimizer
-from OPTAMI.utils import tuple_to_vec, derivatives, line_search
-
+from OPTAMI.utils import tuple_to_vec, derivatives, line_search, subproblem_solver
 
 class CubicRegularizedNewton(Optimizer):
     """Implements Cubic Regularized Newton Method.
+
     It had been proposed in `Cubic regularization of Newton method and its global performance`
     https://link.springer.com/content/pdf/10.1007/s10107-006-0706-8.pdf
+
     Contributors:
         Dmitry Kamzolov
         Dmitry Vilensky-Pasechnyuk
+
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
         L (float): estimated value of Lipschitz constant of the Hessian
         subsolver (Optimizer): optimization method to solve the inner problem by gradient steps
         subsolver_args (dict): arguments for the subsolver such as a learning rate and others
         max_iters (int): number of the inner iterations of the subsolver to solve the inner problem
-        rel_acc (float): relative stopping criterion for the inner problem
+        rel_acc (float): relative stopping criterion for the inner problem (default: 1e-1)
+        testing (bool): if True, it computes some additional tests (default: False)
     """
+    ORDER = 2
     MONOTONE = True
-    SKIP_TEST_LOGREG = False
 
     def __init__(self, params, L: float = 1., subsolver: Optimizer = None,
                  subsolver_args: dict = None, max_iters: int = 100,
-                 rel_acc: float = 1e-1, verbose: bool = False, testing: bool = False):
+                 rel_acc: float = 1e-1,
+                 verbose: bool = False, testing: bool = False):
         if L <= 0:
             raise ValueError(f"Invalid learning rate: L = {L}")
 
@@ -31,7 +35,6 @@ class CubicRegularizedNewton(Optimizer):
             L=L, subsolver=subsolver,
             subsolver_args=subsolver_args or {'lr': 1e-2},
             max_iters=max_iters, rel_acc=rel_acc))
-
         self.verbose = verbose
         self.testing = testing
 
@@ -50,88 +53,55 @@ class CubicRegularizedNewton(Optimizer):
             subsolver = group['subsolver']
             subsolver_args = group['subsolver_args']
 
-            if subsolver is None:
-                x = exact(params, closure, L, testing=self.testing)
-            else:
-                is_satisfactory, x = iterative(
-                    params, closure, L,
-                    subsolver, subsolver_args, max_iters, rel_acc)
+            grad = tuple_to_vec.tuple_to_vector(
+                torch.autograd.grad(closure(), list(params), create_graph=True))
 
-                if not is_satisfactory and self.verbose:
-                    print('subproblem was solved inaccurately')
+            if subsolver is None:
+                hessian = derivatives.flat_hessian(grad, list(params))
+                h = subproblem_solver.cubic_exact(params=params, grad_approx=grad, hessian_approx=hessian, L=L,
+                                                  testing=self.testing)
+            else:
+                is_satisfactory, h = iterative(params=params, grad=grad, L=L, subsolver=subsolver,
+                                               subsolver_args=subsolver_args, max_iters=max_iters, rel_acc=rel_acc)
+
+            if self.testing:
+                f_k = closure()
+                with torch.no_grad():
+                    for i, p in enumerate(params):
+                        p.add_(h[i])
+                f_k_plus = closure()
+                grad = torch.autograd.grad(f_k_plus, params)
+                sq_norm = tuple_to_vec.tuple_norm_square(grad)
+                norm = sq_norm ** (1/2)
+                with torch.no_grad():
+                    for i, p in enumerate(params):
+                        p.sub_(h[i])
+                if self.verbose:
+                    print('norm', norm)
+                    print('success', f_k - f_k_plus - norm ** (4/3) / (2 * L ** (1/3)))
+                    print()
+                assert f_k - f_k_plus - norm ** (3/2) / (2 * L ** (1/2)) >= 0
 
             with torch.no_grad():
                 for i, p in enumerate(params):
-                    p.add_(x[i])
+                    p.add_(h[i])
         return None
 
 
-def exact(params, closure, L, delta=1e-8, testing=False):
-    df = tuple_to_vec.tuple_to_vector(
-        torch.autograd.grad(closure(), list(params), create_graph=True))
-    H = derivatives.flat_hessian(df, list(params))
-
-    c = df.detach().to(torch.double)
-    A = H.detach().to(torch.double)
-
-    if c.dim() != 1:
-        raise ValueError(f"`c` must be a vector, but c = {c}")
-
-    if A.dim() > 2:
-        raise ValueError(f"`A` must be a matrix, but A = {A}")
-
-    if c.size()[0] != A.size()[0]:
-        raise ValueError("`c` and `A` mush have the same 1st dimension")
-
-    if (A.t() - A).max() > 0.1:
-        raise ValueError("`A` is not symmetric")
-
-    T, U = torch.linalg.eigh(A)
-    ct = U.t().mv(c)
-
-    def inv(T, L, tau):
-        return (T + L / 2 * tau).reciprocal()
-
-    def dual(tau):
-        return L / 12 * tau.pow(3) + 1 / 2 * \
-               inv(T, L, tau).mul(ct.square()).sum()
-
-    tau_best = line_search.ray_line_search(
-        dual,
-        left_point=torch.tensor([0.]),
-        middle_point=torch.tensor([2.]),
-        delta=delta)
-
-    invert = inv(T, L, tau_best)
-    x = -U.mv(invert.mul(ct).type_as(U))
-
-    if testing and (c + L / 2 * x.norm() * x + A.mv(x)).abs().max().item() >= 0.01:
-        raise ValueError('obtained `x` is not optimal')
-
-    return tuple_to_vec.rollup_vector(x, list(params))
-
-
-def iterative(params, closure, L, subsolver, subsolver_args, max_iters, rel_acc):
+def iterative(params, grad, L, subsolver, subsolver_args, max_iters, rel_acc):
     x = torch.zeros_like(tuple_to_vec.tuple_to_vector(
         list(params)), requires_grad=True)
     optimizer = subsolver([x], **subsolver_args)
 
     for _ in range(max_iters):
         optimizer.zero_grad()
-        Hx, df = derivatives.flat_hvp(closure, list(params), x)
+        Hx = derivatives.hvp_from_grad(grad, list(params), x)
 
-        for p in params:
-            if p.grad is not None:
-                if p.grad.grad_fn is not None:
-                    p.grad.detach_()
-                else:
-                    p.grad.requires_grad_(False)
-                p.grad.zero_()
-
-        x.grad = df + Hx + x.mul(L * x.norm() / 2.)
+        x.grad = grad + Hx + x.mul(L * x.norm() / 2.)
         optimizer.step()
 
-        if x.grad.norm() < rel_acc * df.norm():
+        if x.grad.norm() < rel_acc * grad.norm():
             return True, tuple_to_vec.rollup_vector(x.detach(), list(params))
 
     return False, tuple_to_vec.rollup_vector(x.detach(), list(params))
+

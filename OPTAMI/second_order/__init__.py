@@ -1,2 +1,3 @@
 from .cubic_regularized_newton import CubicRegularizedNewton
 from .damped_newton import DampedNewton
+from .basic_tensor_method import BasicTensorMethod

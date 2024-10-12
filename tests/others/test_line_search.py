@@ -13,7 +13,7 @@ def square(x):
 
 
 def inverse(x):
-    return 1 / (1 + x)
+    return 1. / (1+x)
 
 
 def exp(x):
@@ -36,6 +36,11 @@ def test_segment_search():
     left = torch.tensor([0.])
     right = torch.tensor([20.])
     for segment_search in [ls.segment_search_ternary, ls.segment_search_gold]:
-        assert - eps < segment_search(square, left_point=0., right_point=20.) - 10.0 < eps
-        assert - eps < segment_search(square, left_point=left, right_point=right) - 10.0 < eps
+        assert abs(segment_search(square, left_point=0., right_point=20.) - 10.) < eps
+        assert abs(segment_search(square, left_point=left, right_point=right) - 10.) < eps
         assert segment_search(exp, left_point=left, right_point=right) == 0.
+        assert abs(segment_search(inverse, left_point=0., right_point=right) - 20.) < 0.001
+
+
+
+

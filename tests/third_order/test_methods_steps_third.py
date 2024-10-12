@@ -1,11 +1,8 @@
 import json
 import torch
-import sys
-
-sys.path.append("./")
 import OPTAMI as opt
-import numpy as np
-
+from numpy import ndim
+torch.set_default_dtype(torch.float64)
 
 def f_small_pow_4(x):
     return x.square().square().sum()
@@ -22,17 +19,19 @@ def nesterov_lower_3(x):
 def test_steps():
     methods = {
         'Optimal': opt.Optimal,
-        'Hyperfast': opt.Hyperfast,
-        'Superfast': opt.Superfast,
+        'ProxPointSegmentSearch': opt.ProxPointSegmentSearch,
+        'NATA': opt.NATA,
+        'NearOptimalAcceleration': opt.NearOptimalAcceleration,
+        'NesterovAcceleration': opt.NesterovAcceleration,
         'BasicTensorMethod': opt.BasicTensorMethod
     }
 
     problems = {'f_small_pow_4': f_small_pow_4, 'nesterov_lower_3': nesterov_lower_3}
 
-    with open('./tests/third_order/test_problems_third.json', 'r') as re:
+    with open('./third_order/test_problems_third.json', 'r') as re:
         problem_setup = json.loads(re.read())
 
-    with open('./tests/third_order/test_methods_third.json', 'r') as re:
+    with open('./third_order/test_methods_third.json', 'r') as re:
         tests = json.loads(re.read())
 
     for problem in problem_setup:
@@ -42,7 +41,7 @@ def test_steps():
                 f = problems[problem["test_problem"]]
                 # To define x by generator "test_starting_point" should be with two dimensions.
                 # The first dimension is a vector dimension. The second dimension is a value
-                if np.ndim(problem["test_starting_point"]) == 2:
+                if ndim(problem["test_starting_point"]) == 2:
                     x = torch.ones(problem["test_starting_point"][0][0])
                     x = x.mul(problem["test_starting_point"][1][0])
                     x.requires_grad_()

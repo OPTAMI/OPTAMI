@@ -1,14 +1,32 @@
 [
   {
-    "algorithm": "Hyperfast",
+    "algorithm": "Optimal",
     "outer_setup": [
       {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 1, "config": {"order":  3}}
     ]
   },
   {
-    "algorithm": "Superfast",
+    "algorithm": "ProxPointSegmentSearch",
     "outer_setup": [
-      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 4, "config": {"order":  3, "a_step": 0.1 }}
+      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 1, "config": {"order":  3}}
+    ]
+  },
+  {
+    "algorithm": "NATA",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 1, "config": {"order":  3}}
+    ]
+  },
+  {
+    "algorithm": "NearOptimalAcceleration",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 1, "config": {"order":  3}}
+    ]
+  },
+  {
+    "algorithm": "NesterovAcceleration",
+    "outer_setup": [
+      {"algorithms_precision": 1e-4, "algorithms_iteration_mul": 4, "config": {"order":  3, "a_step": 1.0 }}
     ]
   },
   {

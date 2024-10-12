@@ -1,3 +1,3 @@
-from .first_order import SimilarTriangles, GradientDescent
-from .higher_order import Superfast, Hyperfast, BasicTensorMethod, ProxPointSS, Optimal
-from .second_order import CubicRegularizedNewton, DampedNewton
+from .first_order import GradientDescent, SimilarTriangles
+from .accelerations import NesterovAcceleration, NearOptimalAcceleration,  ProxPointSegmentSearch, NATA, Optimal
+from .second_order import CubicRegularizedNewton, BasicTensorMethod, DampedNewton
