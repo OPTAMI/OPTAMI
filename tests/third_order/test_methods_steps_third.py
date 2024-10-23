@@ -31,11 +31,11 @@ def test_steps():
     problems = {'f_small_pow_4': f_small_pow_4, 'nesterov_lower_3': nesterov_lower_3}
 
     #with open('./tests/third_order/test_problems_third.json', 'r') as re: #for git
-    with open('./third_order/test_problems_third.json', 'r') as re:
+    with open('./tests/third_order/test_problems_third.json', 'r') as re:
         problem_setup = json.loads(re.read())
 
     #with open('./tests/third_order/test_methods_third.json', 'r') as re: #for git
-    with open('./third_order/test_methods_third.json', 'r') as re:
+    with open('./tests/third_order/test_methods_third.json', 'r') as re:
         tests = json.loads(re.read())
 
     for problem in problem_setup:
