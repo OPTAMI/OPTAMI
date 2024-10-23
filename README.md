@@ -1,5 +1,8 @@
 # OPTAMI: OPTimization for Applied Mathematics and Informatics
 
+## Installation
+To install the package, run ```pip install OPTAMI```
+
 ## Table of Contents
 
 - [OPTAMI: OPTimization for Applied Mathematics and Informatics](#optami-optimization-for-applied-mathematics-and-informatics)
