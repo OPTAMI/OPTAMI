@@ -3,6 +3,8 @@
 ## Installation
 To install the package, run ```pip install OPTAMI```
 
+[![Downloads](https://static.pepy.tech/badge/OPTAMI)](https://pepy.tech/project/OPTAMI)
+
 ## Table of Contents
 
 - [OPTAMI: OPTimization for Applied Mathematics and Informatics](#optami-optimization-for-applied-mathematics-and-informatics)
