@@ -95,15 +95,16 @@ class NATA(Optimizer):
                                                max_subsolver_iterations=max_subsolver_iterations, verbose=verbose, testing=testing)
 
         # Initialization of intermediate points
-        for p in params:
-            state = self.state[p]
-            state['x0'] = p.detach().clone()
-            state['x'] = state['x0'].clone()
-            state['v'] = state['x0'].clone()
-            state['v_new'] = state['x0'].clone()
-            state['y'] = state['x0'].clone()
-            state['grads_sum'] = torch.zeros_like(p)
-            state['grads_sum_new'] = torch.zeros_like(p)
+        with torch.no_grad():
+            for p in params:
+                state = self.state[p]
+                state['x0'] = p.detach().clone()
+                state['x'] = state['x0'].clone()
+                state['v'] = state['x0'].clone()
+                state['v_new'] = state['x0'].clone()
+                state['y'] = state['x0'].clone()
+                state['grads_sum'] = torch.zeros_like(p)
+                state['grads_sum_new'] = torch.zeros_like(p)
 
     def step(self, closure):
         """Performs a single optimization step.
@@ -123,20 +124,20 @@ class NATA(Optimizer):
             self.nu_t *= self.theta
 
         while flag and inner_iteration < self.max_iterations_ls:
-            inner_iteration += 1
-            if self.nu_adaptation:
-                self.nu_t = max(self.nu_t/self.theta, self.nu_min)
-            else:
-                flag = False
-            a_t = self.nu_t / self.L * ((self.iteration + 1) ** (self.order + 1) - self.iteration ** (self.order + 1))
-            A_new = self.A + a_t
-            alpha = self.A / A_new
-
             with torch.no_grad():
+                inner_iteration += 1
+                if self.nu_adaptation:
+                    self.nu_t = max(self.nu_t/self.theta, self.nu_min)
+                else:
+                    flag = False
+                a_t = self.nu_t / self.L * ((self.iteration + 1) ** (self.order + 1) - self.iteration ** (self.order + 1))
+                A_new = self.A + a_t
+                alpha = self.A / A_new
+
                 for p in params:
                     state = self.state[p]
-                    state['y'] = state['x'].mul(alpha).add(state['v'], alpha=1 - alpha)
-                    p.zero_().add_(state['y'])
+                    state['y'].copy_(state['x']).mul_(alpha).add_(state['v'], alpha=1 - alpha)
+                    p.copy_(state['y'])
             self.tensor_step_method.step(closure)
             self.zero_grad()
 
@@ -147,65 +148,59 @@ class NATA(Optimizer):
 
                 for p in params:
                     state = self.state[p]
-                    state['grads_sum_new'] = state['grads_sum'].add(p.grad, alpha=a_t)
+                    state['grads_sum_new'].copy_(state['grads_sum']).add_(p.grad, alpha=a_t)
 
                 if self.order == 1:
                     scaling = 1.
                 else:
-                    norm_squared = 0.
-                    for p in params:
-                        state = self.state[p]
-                        norm_squared += state['grads_sum_new'].square().sum()
-
+                    norm_squared = sum(self.state[p]['grads_sum_new'].square().sum().item() for p in params)
                     power = (1. - self.order) / (2. * self.order)
                     scaling = norm_squared ** power
                 for p in params:
                     state = self.state[p]
-                    state['v_new'] = state['x0'].sub(state['grads_sum_new'], alpha=scaling)
+                    state['v_new'].copy_(state['x0']).sub_(state['grads_sum_new'], alpha=scaling)
 
-                v_distance_sq = 0.
-                for p in params:
-                    state = self.state[p]
-                    v_distance_sq += (state['v_new'] - state['x0']).square().sum()
-                v_distance = v_distance_sq ** (1 / 2)
+                v_distance = sum((self.state[p]['v_new'] - self.state[p]['x0']).square().sum() for p in params) ** 0.5
 
                 if self.testing:
                     grad_v_norm = 0.
                     for p in params:
                         state = self.state[p]
-                        grad_v_norm += (state['grads_sum_new'] + v_distance ** (self.order-1) * (state['v_new'] - state['x0'])).square().sum()
+                        grad_v_norm += (state['grads_sum_new'] + v_distance ** (self.order-1) * (state['v_new'] - state['x0'])).square().sum().item()
                     assert grad_v_norm < 1e-8
 
 
                 if self.nu_adaptation:
                     grad_mul_xk = 0.
                     grads_sum_mul = 0.
-
                     for p in params:
                         state = self.state[p]
-                        grads_sum_mul += state['v_new'].mul(state['grads_sum_new']).sum()
-                        grad_mul_xk += p.mul(p.grad).sum()
+                        grads_sum_mul += state['v_new'].mul(state['grads_sum_new']).sum().item()
+                        grad_mul_xk += p.mul(p.grad).sum().item()
                     psi_agr_new = (f_xk1.item() - grad_mul_xk) * a_t
                     total = self.psi_agr + psi_agr_new + grads_sum_mul + v_distance ** (self.order + 1) / (self.order + 1)
 
                     if total >= A_new * f_xk1.item():
                         flag = False
 
-        if self.nu_adaptation:
-            self.psi_agr += psi_agr_new
-        self.iteration += 1
-        self.A = A_new + 0.
-        if self.aggressive_nu_adaptation and self.nu_adaptation:
-            self.nu_t *= self.theta
-            if self.nu_max_limiter:
-                self.nu_t = min(self.nu_t, self.nu_max)
-        for p in params:
-            state = self.state[p]
-            state['x'].zero_().add_(p)
-            state['v'].zero_().add_(state['v_new'])
-            state['grads_sum'].zero_().add_(state['grads_sum_new'])
-        self.average_iterations = (self.average_iterations * self.iteration + inner_iteration) / (
-                self.iteration + 1)
-        self.total_iterations.append(self.total_iterations[-1] + inner_iteration)
+        with torch.no_grad():
+            self.iteration += 1
+            self.A = A_new + 0.
+
+            if self.nu_adaptation:
+                self.psi_agr += psi_agr_new
+                if self.aggressive_nu_adaptation:
+                    self.nu_t *= self.theta
+                    if self.nu_max_limiter:
+                        self.nu_t = min(self.nu_t, self.nu_max)
+
+            for p in params:
+                state = self.state[p]
+                state['x'].copy_(p)
+                state['v'].copy_(state['v_new'])
+                state['grads_sum'].copy_(state['grads_sum_new'])
+            self.average_iterations = (self.average_iterations * self.iteration + inner_iteration) / (
+                    self.iteration + 1)
+            self.total_iterations.append(self.total_iterations[-1] + inner_iteration)
 
         return None

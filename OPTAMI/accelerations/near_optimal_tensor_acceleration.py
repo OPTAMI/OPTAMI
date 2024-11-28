@@ -90,30 +90,28 @@ class NearOptimalAcceleration(Optimizer):
             closure (callable): a closure that reevaluates the model and returns the loss.
         """
         closure = torch.enable_grad()(closure)
-
-        assert len(self.param_groups) == 1
         group = self.param_groups[0]
         params = group['params']
 
+        with torch.no_grad():
+            factorial_ = factorial(self.order - 1)
+            upper_bound = self.order / (self.order + 1)
+            medium = (upper_bound + 0.5) / 2
+            left, right = 0., 1.
+            A_new = self.A + 0.
+            a = 0.
+            inner_iteration = 0
+            stop = False
 
-        factorial_ = factorial(self.order - 1)
-        upper_bound = self.order / (self.order + 1)
-        medium = (upper_bound + 0.5) / 2
-        left, right = 0., 1.
-        A_new = self.A + 0.
-        a = 0.
-        inner_iteration = 0
-        stop = False
         while not stop and inner_iteration < self.max_iterations_ls:
-            inner_iteration += 1
-            A_new = self.A / self.theta
-            a = A_new - self.A
-
-            for p in params:
-                state = self.state[p]
-                with torch.no_grad():
-                    state['x_wave'] = state['y'].mul(self.theta).add(state['x'], alpha=1-self.theta)
-                    p.zero_().add_(state['x_wave'])
+            with torch.no_grad():
+                inner_iteration += 1
+                A_new = self.A / self.theta
+                a = A_new - self.A
+                for p in params:
+                    state = self.state[p]
+                    state['x_wave'].copy_(state['y']).mul_(self.theta).add_(state['x'], alpha=1-self.theta)
+                    p.copy_(state['x_wave'])
 
             self.tensor_step_method.step(closure)
             self.zero_grad()
@@ -145,7 +143,7 @@ class NearOptimalAcceleration(Optimizer):
         with torch.no_grad():
             for p in params:
                 state = self.state[p]
-                state['y'] = p.detach().clone()
+                state['y'].copy_(p.detach())
 
         closure().backward()
 

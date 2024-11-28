@@ -65,8 +65,6 @@ class Optimal(Optimizer):
         if eta0 <= 0.:
 
             if self.order == 1:
-                #Cm = L * (1 + 1 / sigma) *  (q + 1) #** (q / 2 - 1)
-                #self.eta0 = 2  / (Cm * 4 * (1 + sigma) / (1 - sigma))
                 self.eta0 = 4.
             else:
                 q = self.order
@@ -86,6 +84,8 @@ class Optimal(Optimizer):
                 state['x'] = p.detach().clone()
                 state['xg'] = state['x'].clone()
                 state['xt'] = state['x'].clone()
+                state['xt+1/2'] = state['x'].clone()
+                state['dA'] = torch.zeros_like(p)
 
     def step(self, closure):
         """Performs a single optimization step.
@@ -102,32 +102,29 @@ class Optimal(Optimizer):
         sigma = self.sigma
 
         L = self.L
-
-        # Steps 5-6
-        eta = self.eta0 * (1 + self.iteration) ** ((3 * self.order - 1) / 2)
-        self. beta += eta
-        alpha = eta / self.beta #eta_0 - free
-        lambd = eta * alpha #linear dependence on eta_0
-        # Steps 7-8
         with torch.no_grad():
+            # Steps 5-6
+            eta = self.eta0 * (1 + self.iteration) ** ((3 * self.order - 1) / 2)
+            self. beta += eta
+            alpha = eta / self.beta #eta_0 - free
+            lambd = eta * alpha #linear dependence on eta_0
+            # Steps 7-8
+
             for p in params:
                 state = self.state[p]
                 state['xg'].mul_(alpha).add_(p.detach(), alpha=1 - alpha)
-                state['xt'] = state['xg'].clone()
+                state['xt'].copy_(state['xg'])
         inner_iteration = 0
         stop = False
         while not stop and inner_iteration < self.max_iters_ls:
             for p in params:
                 state = self.state[p]
                 with torch.no_grad():
-                    p.zero_().add_(state['xt'])
+                    p.copy_(state['xt'])
 
             def regularized_closure():
                 self.tensor_step_method.zero_grad()
-                norm = 0.
-                for p in params:
-                    state = self.state[p]
-                    norm += (p.sub(state['xg'])).square().sum()
+                norm = sum((p - self.state[p]['xg']).square().sum() for p in params)
                 return closure() + norm / (2 * lambd)
 
             inner_iteration += 1
@@ -135,9 +132,7 @@ class Optimal(Optimizer):
             self.zero_grad()
 
             for p in params:
-                state = self.state[p]
-                state['xt+1/2'] = p.detach().clone()
-
+                self.state[p]['xt+1/2'].copy_(p.detach())
 
             closure().backward()
 
@@ -147,12 +142,12 @@ class Optimal(Optimizer):
             with torch.no_grad():
                 for p in group['params']:
                     state = self.state[p]
-                    state['dA'] = p.grad.clone()
-                    temp = state['xt+1/2'].sub(state['xg'])
+                    state['dA'].copy_(p.grad)
+                    temp = state['xt+1/2'] - state['xg']
                     state['dA'].add_(temp.div(lambd))
-                    dA_norm += state['dA'].square().sum()
-                    shift_norm += temp.square().sum()
-                    step_norm += (state['xt+1/2'] - state['xt']).square().sum()
+                    dA_norm += state['dA'].square().sum().item()
+                    shift_norm += temp.square().sum().item()
+                    step_norm += (state['xt+1/2'] - state['xt']).square().sum().item()
                 dA_norm = dA_norm ** 0.5
                 shift_norm = shift_norm ** 0.5
                 step_norm = step_norm ** 0.5
@@ -162,11 +157,11 @@ class Optimal(Optimizer):
                     state['xt'].sub_(state['dA'], alpha=step_size)
 
             stop = dA_norm <= (sigma / lambd) * shift_norm
-        for p in params:
-            state = self.state[p]
-            with torch.no_grad():
-                p.zero_().add_(state['xt+1/2'])
 
+        with torch.no_grad():
+            for p in params:
+                state = self.state[p]
+                p.copy_(state['xt+1/2'])
 
         closure().backward()
 

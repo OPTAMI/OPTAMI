@@ -7,7 +7,6 @@ class GradientDescent(Optimizer):
 
     Contributors:
         Dmitry Kamzolov
-        Dmitry Vilensky-Pasechnyuk
 
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups
@@ -18,13 +17,15 @@ class GradientDescent(Optimizer):
 
     def __init__(self, params, L: float = 1., verbose: bool = True, testing: bool = False):
         if L <= 0:
-            raise ValueError(f"Invalid learning rate: L = {L}")
+            raise ValueError(f"Invalid Lipschitz constant: L = {L}")
 
-        super().__init__(params, dict(
-            L=L))
+        super().__init__(params, dict(L=L))
 
         self.verbose = verbose
         self.testing = testing
+        if len(self.param_groups) != 1:
+            raise ValueError("Method doesn't support per-parameter options "
+                             "(parameter groups)")
 
     def step(self, closure):
         """Performs a single optimization step.
@@ -32,15 +33,12 @@ class GradientDescent(Optimizer):
             closure (callable): a closure that reevaluates the model and returns the loss
         """
         closure = torch.enable_grad()(closure)
-
-        for group in self.param_groups:
-            params = group['params']
-            L = group['L']
-
-            closure().backward()
-
-            with torch.no_grad():
-                for p in params:
-                    p.sub_(p.grad / L)
+        group = self.param_groups[0]
+        params = group['params']
+        L = group['L']
+        closure().backward()
+        with torch.no_grad():
+            for p in params:
+                p.sub_(p.grad / L)
         return None
 

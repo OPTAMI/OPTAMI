@@ -76,12 +76,13 @@ class NesterovAcceleration(Optimizer):
                                                max_subsolver_iterations=max_subsolver_iterations, verbose=verbose, testing=testing)
 
         # Initialization of intermediate points
-        for p in params:
-            state = self.state[p]
-            state['x0'] = p.detach().clone()
-            state['x'] = state['x0'].clone()
-            state['v'] = state['x0'].clone()
-            state['grads_sum'] = torch.zeros_like(p)
+        with torch.no_grad():
+            for p in params:
+                state = self.state[p]
+                state['x0'] = p.detach().clone()
+                state['x'] = state['x0'].clone()
+                state['v'] = state['x0'].clone()
+                state['grads_sum'] = torch.zeros_like(p)
 
     def step(self, closure):
         """Performs a single optimization step.
@@ -94,13 +95,10 @@ class NesterovAcceleration(Optimizer):
         assert len(self.param_groups) == 1
         group = self.param_groups[0]
         params = group['params']
-
-        alpha = (1. - 1. / (self.iteration + 1)) ** (self.order + 1)
-
         with torch.no_grad():
+            alpha = (1. - 1. / (self.iteration + 1)) ** (self.order + 1)
             for p in params:
-                state = self.state[p]
-                p.mul_(alpha).add_(state['v'], alpha=1 - alpha)
+                p.mul_(alpha).add_(self.state[p]['v'], alpha=1 - alpha)
 
         self.tensor_step_method.step(closure)
         self.zero_grad()
@@ -111,23 +109,19 @@ class NesterovAcceleration(Optimizer):
             a = self.a_step * ((self.iteration + 1) ** (self.order + 1) - self.iteration ** (self.order + 1)) / self.L
             for p in params:
                 state = self.state[p]
-                state['x'].zero_().add_(p)
+                state['x'].copy_(p)
                 state['grads_sum'].add_(p.grad, alpha=a)
 
             if self.order == 1:
                 scaling = 1.
             else:
-                norm_squared = 0.
-                for p in params:
-                    state = self.state[p]
-                    norm_squared += state['grads_sum'].square().sum()
-
+                norm_squared = sum(self.state[p]['grads_sum'].square().sum().item() for p in params)
                 power = (1. - self.order) / (2. * self.order)
                 scaling = norm_squared ** power
 
             for p in params:
                 state = self.state[p]
-                state['v'].zero_().add_(state['x0']).sub_(state['grads_sum'], alpha=scaling)
+                state['v'].copy_(state['x0']).sub_(state['grads_sum'], alpha=scaling)
 
             self.iteration += 1
 

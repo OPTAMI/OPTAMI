@@ -120,7 +120,7 @@ class ProxPointSegmentSearch(Optimizer):
             with torch.no_grad():
                 for p in params:
                     state = self.state[p]
-                    p.zero_().add_(state['v'])
+                    p.copy_(state['v'])
             
             self.tensor_step_method.step(closure)
             self.zero_grad()
@@ -159,7 +159,7 @@ class ProxPointSegmentSearch(Optimizer):
 
                         for p in params:
                             state = self.state[p]
-                            p.zero_().add_(state['x']).add_(state['u'], alpha=tau)
+                            p.copy_(state['x']).add_(state['u'], alpha=tau)
 
                     self.tensor_step_method.step(closure)
                     self.zero_grad()
@@ -208,7 +208,7 @@ class ProxPointSegmentSearch(Optimizer):
             for p in params:
                 state = self.state[p]
                 state['v'].sub_(state['phi'], alpha=a)
-                p.zero_().add_(state['x'])
+                p.copy_(state['x'])
 
         self.A += a
         self.average_iterations = (self.average_iterations * self.iteration + inner_iteration) / (self.iteration + 1)

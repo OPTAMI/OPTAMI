@@ -1,11 +1,11 @@
 import torch
+from typing import List
 
+def norm_of_tensors(list_tensor: List[torch.Tensor]) -> float:
+    return sum(x.square().sum().item() for x in list_tensor) ** 0.5
 
-def tuple_norm_square(tuple_in):
-    norm_in = 0.
-    for t in tuple_in:
-        norm_in += t.square().sum()
-    return norm_in
+def tuple_norm_square(list_tensor: List[torch.Tensor])-> float:
+    return sum(x.square().sum().item() for x in list_tensor)
 
 
 # return a flat vector from a tuple of vectors and matrices.

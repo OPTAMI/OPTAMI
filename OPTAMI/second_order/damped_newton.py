@@ -66,29 +66,29 @@ https://proceedings.neurips.cc/paper_files/paper/2022/hash/a1f0c0cd6caaa4863af5f
             reg = group['reg']
             grad = torch.autograd.grad(closure(), list(params), create_graph=True)
 
-            if variant == 'Classic':
-                reg = 0.
-                alpha = alpha
-            elif variant == 'GradReg':
-                g_norm = torch.sqrt(tuple_to_vec.tuple_norm_square(grad))
-                reg = (L * g_norm).item() ** 0.5
-                alpha = 1.
-            elif variant == 'AIC':
-                reg = 0.
+            with torch.no_grad():
+                if variant == 'Classic':
+                    reg = 0.
+                    alpha = alpha
+                elif variant == 'GradReg':
+                    g_norm = tuple_to_vec.norm_of_tensors(grad)
+                    reg = (L * g_norm) ** 0.5
+                    alpha = 1.
+                elif variant == 'AIC':
+                    reg = 0.
 
             if self.CG_subsolver:
                 h = subproblem_solver.CG_subsolver(params=params, grad=grad, reg=reg, testing=self.testing)
             else:
                 h = subproblem_solver.quadratic_exact_solve(params=params, grad=grad, reg=reg, testing=self.testing)
-
-            if variant == 'AIC':
-                G = 0.
-                for h_i, g_i in zip(h, grad):
-                    G += g_i.mul(h_i).sum()
-                G = L * G ** 0.5
-                alpha = ((1 + 2 * G) ** 0.5 - 1) / G
-
             with torch.no_grad():
+                if variant == 'AIC':
+                    G = 0.
+                    for h_i, g_i in zip(h, grad):
+                        G += g_i.mul(h_i).sum().item()
+                    G = L * G ** 0.5
+                    alpha = ((1 + 2 * G) ** 0.5 - 1) / G
+
                 for p, h in zip(params, h):
                     p.sub_(h, alpha=alpha)
         return None
