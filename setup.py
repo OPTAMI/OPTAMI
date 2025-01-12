@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
         name="OPTAMI",
-        version="0.0.2",
-        author="Dmitry Kamzolov",
+        version="0.0.3",
+        author="Dmitry Kamzolov, Dmitry Vilensky-Pasechnyuk, Artem Agafonov",
         author_email="kamzolov.opt@gmail.com",
         description="Second-Order PyTorch Optimizers",
         long_description=open("README.md").read(),
