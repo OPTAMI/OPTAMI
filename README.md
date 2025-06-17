@@ -102,7 +102,17 @@ Although the library is primarily focused on second-order optimization methods, 
 
 ## 3. Citation
 If you use code from OPTAMI, please cite both the original papers of the specific methods used and the following paper associated with the OPTAMI library: 
-### _Kamzolov, D., Pasechnyuk, D., Agafonov, A., Gasnikov, A. and Takáč, M._ 2024. OPTAMI: Global Superlinear Convergence of High-order Methods. arXiv preprint arXiv:2410.04083.
+### _Kamzolov, D., Agafonov, A., D., Pasechnyuk, Gasnikov, A. and Takáč, M._ 2025. OPTAMI: Global Superlinear Convergence of High-order Methods. The Thirteens International Conference on Learning Representations (ICLR 2025).
+
+```
+@inproceedings{kamzolov2025optami,
+title={OPTAMI: Global Superlinear Convergence of High-order Methods},
+author={Dmitry Kamzolov and Artem Agafonov and Dmitry Pasechnyuk and Alexander Gasnikov and Martin Tak{\'a}{\v{c}}},
+booktitle={The Thirteens International Conference on Learning Representations},
+year={2025},
+url={https://openreview.net/forum?id=Cpr6Wv2tfr}
+}
+```
 
 ## 4. For contributors
 ### 4.1 Criteria for contributed algorithms
