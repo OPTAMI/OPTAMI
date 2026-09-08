@@ -80,7 +80,7 @@ class SimilarTriangles(Optimizer):
                         state['u'] = p.clone()
 
                     u = state['u']
-                    a = math.sqrt(1./(4*L**2) + A/L) + 1./(2*L)
+                    a = math.sqrt(1. / (4 * L ** 2) + A / L) + 1. / (2 * L)
                     alpha = A / (A + a)
                     state['alpha'] = alpha
 
