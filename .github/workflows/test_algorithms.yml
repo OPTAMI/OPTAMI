@@ -5,16 +5,32 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Lets you start a run by hand from the Actions tab, on any branch, without pushing
+  # anything.  Useful after touching packaging, where the thing being tested is the install.
+  workflow_dispatch:
+  # Weeks can pass with no push, and an upstream torch release does not wait for one.
+  # 06:00 UTC every Monday, so a breakage is found by a scheduled run rather than by a user.
+  schedule:
+    - cron: "0 6 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# This workflow only reads the repository and publishes nothing, so it gets a token that
+# can do no more than that.
+permissions:
+  contents: read
+
+env:
+  A9A_URL: https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a
 
 jobs:
   # Newest releases: catches upstream changes (a deprecation, a changed default) early.
   test:
     name: python ${{ matrix.python-version }}, latest torch
     runs-on: ubuntu-latest
+    timeout-minutes: 30      # a method that stops converging should fail, not run for hours
     strategy:
       fail-fast: false
       matrix:
@@ -22,39 +38,92 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
         cache: pip
+        # Required.  Left out, pip caching globs for **/requirements.txt and *fails the job*
+        # when nothing matches ("No file in ... matched to [**/requirements.txt]").  This
+        # repository has no requirements.txt: what CI installs is declared in pyproject.toml,
+        # so that is what the cache key is built from.
+        cache-dependency-path: pyproject.toml
+
     - name: Install dependencies (CPU-only torch wheel)
       run: |
+        echo "::group::pip install"
         python -m pip install --upgrade pip
         pip install torch --index-url https://download.pytorch.org/whl/cpu
         pip install -e ".[test]"
+        echo "::endgroup::"
+
     - name: Versions under test
-      run: python -c "import sys, torch; print(sys.version); print('torch', torch.__version__)"
+      run: python .github/scripts/report_environment.py "python ${{ matrix.python-version }}, latest torch"
+
+    - name: Restore the cached a9a dataset
+      id: a9a-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: data/LibSVM
+        key: libsvm-a9a-v1
+
     - name: Download a9a
+      if: steps.a9a-cache.outputs.cache-hit != 'true'
+      # Not fatal: the 15 tests that need a9a skip themselves and the other 136 still run,
+      # rather than losing the whole run to an unreachable university server.  The step goes
+      # orange and the job summary says the dataset is missing, so it cannot pass unnoticed.
+      continue-on-error: true
       run: |
         mkdir -p data/LibSVM
-        wget -q https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a -O data/LibSVM/a9a.txt
+        curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "$A9A_URL" -o data/LibSVM/a9a.txt \
+          || { echo "::error::could not download a9a from $A9A_URL"; rm -f data/LibSVM/a9a.txt; exit 1; }
+        # A truncated transfer or a proxy error page is worse than no file at all: it would be
+        # cached and then quietly used as if it were the dataset.  a9a is ~2.2 MB.
+        bytes=$(wc -c < data/LibSVM/a9a.txt)
+        if [ "$bytes" -lt 1000000 ]; then
+          echo "::error::a9a download looks truncated ($bytes bytes, expected ~2.2 MB)"
+          rm -f data/LibSVM/a9a.txt
+          exit 1
+        fi
+
+    - name: Save a9a to the cache
+      # Only after the checks above passed.  The key is constant, so caching a failed download
+      # would hit forever and disable those 15 tests silently.
+      if: steps.a9a-cache.outputs.cache-hit != 'true' && hashFiles('data/LibSVM/a9a.txt') != ''
+      uses: actions/cache/save@v4
+      with:
+        path: data/LibSVM
+        key: libsvm-a9a-v1
+
+    - name: Dataset status
+      run: python .github/scripts/report_dataset.py data/LibSVM/a9a.txt
+
     - name: PyTest
-      run: pytest tests -q --durations=10
+      run: pytest tests -v -ra --color=yes --tb=short --durations=15 --junit-xml=report.xml
+
+    - name: Test summary
+      if: always()      # a failed run is exactly when the summary is worth having
+      run: python .github/scripts/pytest_summary.py report.xml "python ${{ matrix.python-version }}, latest torch"
 
   floor:
     name: declared floors (oldest supported)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       FLOOR_PYTHON: "3.10"
       FLOOR_TORCH: "2.4.0"
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python ${{ env.FLOOR_PYTHON }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.FLOOR_PYTHON }}
         cache: pip
+        cache-dependency-path: pyproject.toml      # see the note in the job above
+
     - name: Check the pins here still match the floors declared in pyproject.toml
       run: |
         python - <<'PY'
@@ -70,18 +139,67 @@ jobs:
             f"pyproject declares requires-python>={python_floor}, this job runs {pinned_python}"
         print(f"floors: python {python_floor}, torch {torch_floor}")
         PY
+
     - name: Install the floor versions (CPU-only torch wheel)
       run: |
+        echo "::group::pip install"
         python -m pip install --upgrade pip
         # torch < 2.5 is built against the NumPy 1.x ABI; install it before anything pulls NumPy 2.
         pip install "numpy<2"
         pip install "torch==${FLOOR_TORCH}" --index-url https://download.pytorch.org/whl/cpu
         pip install -e ".[test]"
+        echo "::endgroup::"
+        # scikit-learn is free to pull NumPy 2 back in over the pin above, which would leave
+        # torch 2.4 bound to an ABI it was not built against.  Fail here, with a clear reason,
+        # rather than inside an unrelated test.
+        python -c "import numpy; assert numpy.__version__.startswith('1.'), \
+          f'the [test] extra pulled numpy {numpy.__version__} over the numpy<2 pin torch ${FLOOR_TORCH} needs'"
+
     - name: Versions under test
-      run: python -c "import sys, numpy, torch; print(sys.version); print('torch', torch.__version__, '| numpy', numpy.__version__)"
+      run: >-
+        python .github/scripts/report_environment.py
+        "floors: python ${{ env.FLOOR_PYTHON }}, torch ${{ env.FLOOR_TORCH }}"
+
+    - name: Restore the cached a9a dataset
+      id: a9a-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: data/LibSVM
+        key: libsvm-a9a-v1
+
     - name: Download a9a
+      if: steps.a9a-cache.outputs.cache-hit != 'true'
+      continue-on-error: true      # see the note in the job above
       run: |
         mkdir -p data/LibSVM
-        wget -q https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a -O data/LibSVM/a9a.txt
+        curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors "$A9A_URL" -o data/LibSVM/a9a.txt \
+          || { echo "::error::could not download a9a from $A9A_URL"; rm -f data/LibSVM/a9a.txt; exit 1; }
+        # A truncated transfer or a proxy error page is worse than no file at all: it would be
+        # cached and then quietly used as if it were the dataset.  a9a is ~2.2 MB.
+        bytes=$(wc -c < data/LibSVM/a9a.txt)
+        if [ "$bytes" -lt 1000000 ]; then
+          echo "::error::a9a download looks truncated ($bytes bytes, expected ~2.2 MB)"
+          rm -f data/LibSVM/a9a.txt
+          exit 1
+        fi
+
+    - name: Save a9a to the cache
+      # Only after the checks above passed.  The key is constant, so caching a failed download
+      # would hit forever and disable those 15 tests silently.
+      if: steps.a9a-cache.outputs.cache-hit != 'true' && hashFiles('data/LibSVM/a9a.txt') != ''
+      uses: actions/cache/save@v4
+      with:
+        path: data/LibSVM
+        key: libsvm-a9a-v1
+
+    - name: Dataset status
+      run: python .github/scripts/report_dataset.py data/LibSVM/a9a.txt
+
     - name: PyTest
-      run: pytest tests -q --durations=10
+      run: pytest tests -v -ra --color=yes --tb=short --durations=15 --junit-xml=report.xml
+
+    - name: Test summary
+      if: always()
+      run: >-
+        python .github/scripts/pytest_summary.py report.xml
+        "floors: python ${{ env.FLOOR_PYTHON }}, torch ${{ env.FLOOR_TORCH }}"
