@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OPTAMI"
+version = "0.1.0"
+description = "Second-order, high-order and accelerated optimization methods as PyTorch optimizers"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Dmitry Kamzolov", email = "kamzolov.opt@gmail.com"},
+    {name = "Dmitry Vilensky-Pasechnyuk"},
+    {name = "Artem Agafonov"},
+]
+requires-python = ">=3.10"
+dependencies = ["torch>=2.4"]
+keywords = ["python", "pytorch", "optimization", "optimizer", "second-order", "newton", "tensor methods"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.optional-dependencies]
+# The package itself imports nothing but torch; these are only for running the suite
+# (numpy and scikit-learn load the LibSVM datasets in tests/conftest.py) and the notebooks.
+test = ["pytest>=7.2", "numpy>=1.21", "scikit-learn>=1.3"]
+examples = ["matplotlib>=3.5", "torchvision>=0.19", "scikit-learn>=1.3", "ipykernel>=6.0"]
+
+[project.urls]
+Homepage = "https://github.com/OPTAMI/OPTAMI"
+
+[tool.setuptools.packages.find]
+include = ["OPTAMI*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = ["ignore::UserWarning:torch"]

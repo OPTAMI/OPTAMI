@@ -379,20 +379,40 @@ def _resolve_chunk_size(chunk_size, n: int) -> Union[int, None]:
     return chunk_size
 
 
+# Why we do not use torch.func.hessian (= jacfwd(jacrev)):
+#
+# 1. It cannot be driven from a closure. A torch.optim optimizer receives
+#    model.parameters() and a closure, never the model, but every torch.func
+#    transform needs a pure function whose argument is the parameter vector.
+#    Both ways to bridge that fail: assigning the traced vector to p.data
+#    segfaults the interpreter, and p.copy_(traced) raises "in-place operation
+#    during a grad transform". The only working route, functional_call, needs
+#    the nn.Module that this library deliberately never accepts.
+#
+# 2. Its operator coverage is incomplete. Forward-over-reverse needs forward-mode
+#    AD, and torch 2.14 has no forward-AD rule for soft_margin_loss, the loss in
+#    our own test suite. It raises NotImplementedError only after the forward
+#    pass is already paid (~740 ms on a9a), so "try it and fall back" would cost
+#    that on every step.
+#
+# 3. It is not faster. Same work, torch 2.14, 4 CPU threads:
+#      a9a, n = 123:        flat_hessian    19 ms  vs  torch.func.hessian    96 ms
+#      LeNet-5, N = 6,080:  flat_hessian  17.9 s   vs  torch.func.hessian  36.8 s
+#    (the LeNet numbers need chunk_size; see auto_chunk_size)
+#
+# 4. Our methods build one gradient graph with create_graph=True and reuse it for
+#    many Hessian-vector products. torch.func rebuilds the forward pass on every
+#    call, which is also why it loses on the Hessian-vector-product path.
 def flat_hessian(flat_grads: Tensor, params: Tensors, chunk_size="auto") -> Tensor:
     r"""Dense Hessian (n x n) from a flat gradient that carries a graph.
 
-    torc.func is a JAX-like composable function transforms for PyTorch.
-    Essentially, it transforms the computational block into a function f(x): x-> R
-    This allows faster differentiation and high-order derivatives.
     ``torch.func.vmap`` maps the vector-Jacobian product over the rows of the
-    identity matrix, so every autograd node receives a batch of ``n``
-    cotangents at once and the ``mv`` backward becomes a single GEMM.
-    However, in some rare cases it can fail, then we perform a direct for-loop computation
-    with torch.autograd.grad. If you interested, we write we don't use func.hessian in the comments
+    identity matrix, so every autograd node receives a batch of ``n`` cotangents
+    at once and the ``mv`` backward becomes a single GEMM.
 
-    On a9a vmap measured 12x faster than the loop  (17 ms vs 204 ms, float64 CPU);
-    on GPU the gain is larger because the loop paid ``n`` kernel-launch latencies.
+    On a9a that measured 12x faster than a row-by-row loop (17 ms vs 204 ms,
+    float64 CPU); on GPU the gain is larger, because the loop paid ``n``
+    kernel-launch latencies.
 
     Arguments:
         flat_grads: output of ``tuple_to_vector(autograd.grad(..., create_graph=True))``.
@@ -404,7 +424,8 @@ def flat_hessian(flat_grads: Tensor, params: Tensors, chunk_size="auto") -> Tens
 
     Ops without a vmap batching rule fall back automatically to a per-row loop
     inside ``vmap`` (torch prints a one-time performance warning; the result is
-    still exact).  If ``vmap`` itself raises, we fall back to the explicit loop.
+    still exact).  If ``vmap`` itself raises, this falls back to the explicit loop.
+    The comment above this function says why ``torch.func.hessian`` is not used.
     """
     params = list(params)
     n = flat_grads.numel()
@@ -421,31 +442,6 @@ def flat_hessian(flat_grads: Tensor, params: Tensors, chunk_size="auto") -> Tens
         warnings.warn(f"flat_hessian: vmap failed ({err}); falling back to a row-by-row loop.")
         return torch.stack([vjp_row(eye[i]) for i in range(n)])
 
-    # Why we do not use torch.func.hessian (= jacfwd(jacrev))?
-    #
-    # 1. It cannot be driven from a closure. A torch.optim optimizer receives
-    #    model.parameters() and a closure, never the model, but every torch.func
-    #    transform needs a pure function whose argument is the parameter vector.
-    #    Both ways to bridge that fail: assigning the traced vector to p.data
-    #    segfaults the interpreter, and p.copy_(traced) raises "in-place operation
-    #    during a grad transform". The only working route, functional_call, needs
-    #    the nn.Module that this library deliberately never accepts.
-    #
-    # 2. Its operator coverage is incomplete. Forward-over-reverse needs forward-mode
-    #    AD, and torch 2.14 has no forward-AD rule for soft_margin_loss, the loss in
-    #    our own test suite. It raises NotImplementedError only after the forward
-    #    pass is already paid (~740 ms on a9a), so "try it and fall back" would cost
-    #    that on every step.
-    #
-    # 3. It is not faster. Same work, torch 2.14, 4 CPU threads:
-    #      a9a, n = 123:        flat_hessian    19 ms  vs  torch.func.hessian    96 ms
-    #      LeNet-5, N = 6,080:  flat_hessian  17.9 s   vs  torch.func.hessian  36.8 s
-    #    (the LeNet numbers need chunk_size; see auto_chunk_size)
-    #
-    # 4. Our methods build one gradient graph with create_graph=True and reuse it for
-    #    many Hessian-vector products. torch.func rebuilds the forward pass on every
-    #    call, which is also why it loses on the Hessian-vector-product path.
-
 
 # ---------------------------------------------------------------------------
 # third order
@@ -457,16 +453,28 @@ def third_derivative_from_grad(grads: Tensors, params: Tensors, vector, flat: bo
     ``H v`` is obtained with ``create_graph=True`` so that it can be
     differentiated once more in the direction ``v``:
     ``D^3 f[v, v] = d/dx <H(x) v, v>``.  The returned ``H v`` is detached.
+
+    Arguments:
+        grads: a gradient built with ``create_graph=True``.
+        params: the parameters that gradient was taken with respect to.
+        vector: the direction ``v``, either one tensor or one tensor per parameter.
+        flat: return both results as flat vectors instead of one tensor per parameter.
+        retain_graph: keep the graph of ``grads`` alive after this call, so the caller
+            can go on reusing it (``BasicTensorMethod`` does, to avoid re-evaluating
+            the closure in every inner iteration).  The default frees it.
     """
     params = list(params)
     v = _as_list(vector)
     hvp = torch.autograd.grad(grads, params, grad_outputs=v, create_graph=True)
     hvp_det = [h.detach() for h in hvp]
-    # The next block is introduce to work with the parts where the Hessian is constant in a parameter
-    # (a quadratic objective, or a parameter entering only through a quadratic penalty).
-    # That block of ``H v`` carries no graph, and autograd rejects the whole outputs list with "does not require grad".
-    # Such a block contributes zero to every block of the third derivative, so it is dropped here;
-    # ``allow_unused``/``materialize_grads`` pairs with it to cover unused *inputs*.
+    # The next block handles a parameter in which the Hessian is constant (a quadratic
+    # objective, or a parameter entering only through a quadratic penalty).  Its block of
+    # ``H v`` carries no graph, and autograd rejects the whole outputs list with "does not
+    # require grad".  Such a block contributes zero to every block of the third derivative,
+    # so it is dropped here.  The two flags below cover the mirror case, an *input* that no
+    # remaining output depends on: ``allow_unused=True`` lets autograd return nothing for it
+    # and ``materialize_grads=True`` turns that into zeros, so the result always has one
+    # entry per parameter.
     live = [(h, vec) for h, vec in zip(hvp, v) if h.requires_grad]
     if not live:
         third = tuple(torch.zeros_like(h) for h in hvp_det)
@@ -475,8 +483,6 @@ def third_derivative_from_grad(grads: Tensors, params: Tensors, vector, flat: bo
                                     grad_outputs=[vec for _, vec in live],
                                     retain_graph=retain_graph,
                                     allow_unused=True, materialize_grads=True)
-    # ``retain_graph=True`` lets the caller keep reusing ``grads`` afterwards
-    # (BasicTensorMethod does this to avoid re-evaluating the closure in every inner iteration)
     if flat:
         return tuple_to_vec.tuple_to_vector(third), tuple_to_vec.tuple_to_vector(hvp_det)
     return third, hvp_det

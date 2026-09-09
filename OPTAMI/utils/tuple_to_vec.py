@@ -80,8 +80,7 @@ def flat_view(t: torch.Tensor, warn: bool = True) -> torch.Tensor:
 # flatten / unflatten
 # ---------------------------------------------------------------------------
 def tuple_to_vector(tensors: Tensors, warn: bool = True) -> torch.Tensor:
-    """Concatenate a sequence of tensors into one flat 1-D tensor.
-    """
+    """Concatenate a sequence of tensors into one flat 1-D tensor."""
     return torch.cat([flat_view(t, warn) for t in tensors])
 
 
@@ -131,8 +130,7 @@ def norm_square_item(tensors: Tensors) -> float:
 
 
 def norm_item(tensors: Tensors) -> float:
-    """Euclidean norm of the concatenation of ``tensors`` as a Python float.
-    """
+    """Euclidean norm of the concatenation of ``tensors`` as a Python float."""
     return sum_of_squares(tensors).sqrt().item()
 
 
@@ -143,6 +141,10 @@ def dot_tensor(a: Tensors, b: Tensors) -> torch.Tensor:
     does not allocate the elementwise product that ``(a*b).sum()`` would.
     """
     a, b = list(a), list(b)
+    if len(a) != len(b):
+        # zip() would silently drop the tail and return a partial sum.
+        raise ValueError(f"dot_tensor needs two sequences of the same length, "
+                         f"got {len(a)} and {len(b)}")
     if len(a) == 1:
         return torch.dot(flat_view(a[0]), flat_view(b[0]))
     return torch.stack([torch.dot(flat_view(x), flat_view(y)) for x, y in zip(a, b)]).sum()
@@ -151,8 +153,7 @@ def dot_tensor(a: Tensors, b: Tensors) -> torch.Tensor:
 def dot_item(a: Tensors, b: Tensors) -> float:
     """``sum_i <a_i, b_i>`` as a Python float.
 
-    RENAMED from ``dot_of_tensors``; see :func:`norm_square_item` on the
-    ``_item`` suffix and the cost it marks.
+    See :func:`norm_square_item` on the ``_item`` suffix and the cost it marks.
     """
     return dot_tensor(a, b).item()
 
