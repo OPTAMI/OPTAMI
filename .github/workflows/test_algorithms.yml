@@ -1,0 +1,87 @@
+name: Test Algorithms
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Newest releases: catches upstream changes (a deprecation, a changed default) early.
+  test:
+    name: python ${{ matrix.python-version }}, latest torch
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: pip
+    - name: Install dependencies (CPU-only torch wheel)
+      run: |
+        python -m pip install --upgrade pip
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install -e ".[test]"
+    - name: Versions under test
+      run: python -c "import sys, torch; print(sys.version); print('torch', torch.__version__)"
+    - name: Download a9a
+      run: |
+        mkdir -p data/LibSVM
+        wget -q https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a -O data/LibSVM/a9a.txt
+    - name: PyTest
+      run: pytest tests -q --durations=10
+
+  floor:
+    name: declared floors (oldest supported)
+    runs-on: ubuntu-latest
+    env:
+      FLOOR_PYTHON: "3.10"
+      FLOOR_TORCH: "2.4.0"
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ env.FLOOR_PYTHON }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.FLOOR_PYTHON }}
+        cache: pip
+    - name: Check the pins here still match the floors declared in pyproject.toml
+      run: |
+        python - <<'PY'
+        import os, re, pathlib
+        text = pathlib.Path("pyproject.toml").read_text()
+        torch_floor = re.search(r'"torch>=([0-9.]+)"', text).group(1)
+        python_floor = re.search(r'requires-python = ">=([0-9.]+)"', text).group(1)
+        pinned_torch, pinned_python = os.environ["FLOOR_TORCH"], os.environ["FLOOR_PYTHON"]
+        parts = lambda v: v.split(".")
+        assert parts(pinned_torch)[:len(parts(torch_floor))] == parts(torch_floor), \
+            f"pyproject declares torch>={torch_floor}, this job installs {pinned_torch}"
+        assert pinned_python == python_floor, \
+            f"pyproject declares requires-python>={python_floor}, this job runs {pinned_python}"
+        print(f"floors: python {python_floor}, torch {torch_floor}")
+        PY
+    - name: Install the floor versions (CPU-only torch wheel)
+      run: |
+        python -m pip install --upgrade pip
+        # torch < 2.5 is built against the NumPy 1.x ABI; install it before anything pulls NumPy 2.
+        pip install "numpy<2"
+        pip install "torch==${FLOOR_TORCH}" --index-url https://download.pytorch.org/whl/cpu
+        pip install -e ".[test]"
+    - name: Versions under test
+      run: python -c "import sys, numpy, torch; print(sys.version); print('torch', torch.__version__, '| numpy', numpy.__version__)"
+    - name: Download a9a
+      run: |
+        mkdir -p data/LibSVM
+        wget -q https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a9a -O data/LibSVM/a9a.txt
+    - name: PyTest
+      run: pytest tests -q --durations=10

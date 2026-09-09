@@ -1,5 +1,7 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+# setuptools>=64 is the floor for PEP 660 editable installs (`pip install -e .`),
+# which is how README.md and CI install the package.  There is no setup.py fallback.
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
